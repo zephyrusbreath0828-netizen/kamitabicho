@@ -1,0 +1,74 @@
+[
+ {
+  "id": "kaiun",
+  "name": "開運",
+  "category": "運勢",
+  "description": "運気を開き、物事を良い方向へ導く御利益。"
+ },
+ {
+  "id": "kenko",
+  "name": "健康",
+  "category": "身体",
+  "description": "無病息災・病気平癒の御利益。"
+ },
+ {
+  "id": "kinun",
+  "name": "金運",
+  "category": "財",
+  "description": "商売繁盛・金運向上の御利益。"
+ },
+ {
+  "id": "gakugyo",
+  "name": "学業",
+  "category": "学問",
+  "description": "学業成就・合格祈願の御利益。"
+ },
+ {
+  "id": "yakuyoke",
+  "name": "厄除け",
+  "category": "守護",
+  "description": "災厄を払い、身を守る御利益。"
+ },
+ {
+  "id": "enmusubi",
+  "name": "縁結び",
+  "category": "縁",
+  "description": "良縁・夫婦和合・縁組の御利益。"
+ },
+ {
+  "id": "kofuku",
+  "name": "子宝",
+  "category": "縁",
+  "description": "子授け・安産・子育ての御利益。"
+ },
+ {
+  "id": "shobai",
+  "name": "商売繁盛",
+  "category": "財",
+  "description": "商いの興隆・事業発展の御利益。"
+ },
+ {
+  "id": "gokoku",
+  "name": "五穀豊穣",
+  "category": "実り",
+  "description": "農耕・漁業の実りと地域の安寧。"
+ },
+ {
+  "id": "mamori",
+  "name": "家内安全",
+  "category": "守護",
+  "description": "家族の平安と暮らしの安定。"
+ },
+ {
+  "id": "kotsu",
+  "name": "交通安全",
+  "category": "守護",
+  "description": "道中の無事と旅の安全。"
+ },
+ {
+  "id": "geino",
+  "name": "芸能上達",
+  "category": "技芸",
+  "description": "技芸・芸能・技術の上達。"
+ }
+]
