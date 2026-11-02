@@ -226,9 +226,12 @@ export interface Backend {
    v1.2 追加定義（既存型は変更しない・追加のみ）
    ============================================================ */
 
-/** 地方区分ID */
-export type RegionId =
-  | "hokkaido" | "tohoku" | "kanto" | "chubu" | "kinki" | "chugoku" | "shikoku" | "kyushu";
+/**
+ * 地方区分ID
+ * Firestore の regions コレクションで追加できるため、固定列挙にせず文字列で扱う
+ * （アプリ更新なしで kinki / chugoku … を追加できる）
+ */
+export type RegionId = string;
 
 /** regions/{regionId} */
 export type Region = {
@@ -239,6 +242,13 @@ export type Region = {
   /** 収録神社数（実データに基づく） */
   shrine_count: number;
   updated_at?: string;
+  /** v1.2: データ版数（Firestore 側で更新すると端末側に更新通知が出る） */
+  version?: number;
+  /** v1.2: 配布状態（available=配布中 / preparing=準備中） */
+  release?: "available" | "preparing";  /** ダウンロードサイズ（概算バイト） */
+  download_size?: number;
+  /** データ配布元 */
+  source?: string;
 };
 
 /** deities/{deityId} — 祭神マスタ */
@@ -270,6 +280,8 @@ export type ShrineV2 = Shrine & {
   deities?: string[];
   /** 御利益IDの配列（benefits マスタ参照） */
   benefits?: string[];
+  source?: string;
+  data_version?: number;
 };
 
 /** 参拝記録の同期状態（既存ドキュメントは未設定＝synced とみなす） */
@@ -344,6 +356,8 @@ export type DownloadedRegion = {
   shrine_count: number;
   downloaded_at: string;
   last_synced_at: string;
+  /** 端末に保存した時点のマスタ版数 */
+  version?: number;
 };
 
 /** 検索パラメータ（ページネーション対応） */

@@ -413,8 +413,15 @@ export class FirebaseBackend implements Backend {
     try {
       const snap = await getDocs(collection(getDb(), COLLECTIONS.regions));
       if (snap.empty) return REGIONS;
-      const overrides = new Map(snap.docs.map((d) => [d.id, d.data() as Partial<Region>]));
-      return REGIONS.map((r) => ({ ...r, ...(overrides.get(r.id) ?? {}) }));
+      // Firestore を正とする（アプリに無い地域IDもそのまま表示できる）
+      const rows = snap.docs.map((d) => ({ id: d.id, ...(d.data() as Partial<Region>) })) as Region[];
+      const bundled = new Map(REGIONS.map((r) => [r.id, r]));
+      const merged = rows.map((r) => ({ ...(bundled.get(r.id) ?? {}), ...r }));
+      // Firestore に未登録だが同梱している地域（初回投入前）は補完して表示
+      for (const r of REGIONS) {
+        if (!merged.some((m) => m.id === r.id)) merged.push(r);
+      }
+      return merged.sort((a, b) => (a.order ?? 99) - (b.order ?? 99));
     } catch {
       return REGIONS;
     }

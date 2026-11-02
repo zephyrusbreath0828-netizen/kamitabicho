@@ -8,7 +8,8 @@ import { useApp } from "@/lib/app-context";
 import { formatDateTime } from "@/lib/format";
 
 export default function SyncCenterPage() {
-  const { pendingVisits, lastSyncAt, syncNow, syncing, online, shrineById, removeVisit } = useApp();
+  const { pendingVisits, lastSyncAt, syncNow, syncing, online, shrineById, removeVisit, regionUpdates, applyRegionUpdate } =
+    useApp();
   const [result, setResult] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -34,6 +35,26 @@ export default function SyncCenterPage() {
       <PageHeader title="同期センター" subtitle="オフラインで登録した参拝記録を送信します" backHref="/mypage" eyebrow="SYNC" />
 
       <div className="space-y-4 px-4 py-4">
+        {regionUpdates.length > 0 && (
+          <section className="rounded-xl border border-kin/50 bg-[rgba(168,137,79,0.12)] px-3.5 py-3">
+            <p className="font-mincho text-[0.92rem] font-semibold text-[#7a5f2c]">
+              保存済み地域データの更新があります（{regionUpdates.length}件）
+            </p>
+            <button
+              className="btn btn-outline btn-sm mt-2"
+              disabled={!online}
+              onClick={() => {
+                if (!window.confirm("地域データを最新版に更新しますか？")) return;
+                void (async () => {
+                  for (const id of regionUpdates) await applyRegionUpdate(id);
+                  setResult("地域データを最新版に更新しました。");
+                })();
+              }}
+            >
+              更新を適用する
+            </button>
+          </section>
+        )}
         <section className={`wa-card p-4 ${pendingVisits.length > 0 ? "border-kin/50" : ""}`}>
           <div className="flex items-center justify-between">
             <div>

@@ -48,6 +48,35 @@ export function getDb(): KamitabichoDB | null {
 }
 
 const KEY_DOWNLOADS = "downloads";
+/** 地域の保存状態ミラー（IndexedDB が使えない環境でも状態を保持する） */
+const KEY_STATES = "kamitabicho:region-states:v1";
+
+export type SavedRegionState = { shrine_count: number; version: number; saved_at: string };
+
+export function readRegionStates(): Record<string, SavedRegionState> {
+  if (typeof window === "undefined") return {};
+  try {
+    return JSON.parse(window.localStorage.getItem(KEY_STATES) ?? "{}") as Record<string, SavedRegionState>;
+  } catch {
+    return {};
+  }
+}
+
+function writeRegionStates(map: Record<string, SavedRegionState>): void {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(KEY_STATES, JSON.stringify(map));
+  } catch {
+    /* 容量超過などは無視（IndexedDB 側が正） */
+  }
+}
+
+function setRegionState(regionId: string, value: SavedRegionState | null): void {
+  const map = readRegionStates();
+  if (value) map[regionId] = value;
+  else delete map[regionId];
+  writeRegionStates(map);
+}
 const KEY_LAST_SYNC = "last_sync_at";
 
 /** IndexedDB が使えるか（プライベートブラウズ等で失敗する場合がある） */
@@ -92,6 +121,7 @@ export async function saveRegion(
   shrines: ShrineV2[],
   deities: Deity[],
   benefits: Benefit[],
+  version = 1,
 ): Promise<number> {
   const db = getDb();
   if (!db) throw new Error("端末のデータベースを利用できません。");
@@ -115,11 +145,13 @@ export async function saveRegion(
         shrine_count: rows.length,
         downloaded_at: now,
         last_synced_at: now,
+        version,
       },
     ];
     await db.meta.put({ key: KEY_DOWNLOADS, value: JSON.stringify(next) });
     await db.meta.put({ key: KEY_LAST_SYNC, value: now });
   });
+  setRegionState(regionId, { shrine_count: rows.length, version, saved_at: now });
   return rows.length;
 }
 
@@ -135,6 +167,7 @@ export async function removeRegion(regionId: RegionId): Promise<void> {
       value: JSON.stringify(list.filter((r) => r.region_id !== regionId)),
     });
   });
+  setRegionState(regionId, null);
 }
 
 export async function clearAllLocalData(): Promise<void> {
@@ -146,6 +179,7 @@ export async function clearAllLocalData(): Promise<void> {
     await db.benefits.clear();
     await db.meta.clear();
   });
+  writeRegionStates({});
 }
 
 /** 保存済みの神社数（全地域合計） */

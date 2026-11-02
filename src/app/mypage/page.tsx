@@ -167,12 +167,25 @@ export default function MyPage() {
 
         {/* データ管理・同期 */}
         <section className="wa-card divide-y divide-washi-line">
+          <Link href="/admin" className="flex items-center gap-3 px-4 py-3">
+            <span className="text-kin" aria-hidden>
+              ＋
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="text-[0.9rem] font-semibold">地域パック管理</p>
+              <p className="text-[0.72rem] text-sumi-mute">JSON を登録して地域データを追加（管理者）</p>
+            </div>
+            <span className="text-sumi-mute" aria-hidden>
+              ›
+            </span>
+          </Link>
+
           <Link href="/data" className="flex items-center gap-3 px-4 py-3">
             <span className="text-kin" aria-hidden>
               ↓
             </span>
             <div className="flex-1">
-              <p className="text-[0.9rem] font-semibold">データ管理</p>
+              <p className="text-[0.9rem] font-semibold">神社データ管理</p>
               <p className="text-[0.72rem] text-sumi-mute">
                 {downloads.length}地方を端末に保存中
               </p>

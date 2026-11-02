@@ -19,6 +19,19 @@ export function regionForPrefecture(prefecture: string): RegionId {
   return regionOfPrefecture(prefecture);
 }
 
+/** 配布中か（準備中の地域はダウンロード不可） */
+export function isRegionAvailable(region: { release?: string } | undefined): boolean {
+  return region?.release !== "preparing";
+}
+
+/** 保存済みデータに更新があるか */
+export function hasRegionUpdate(
+  master: { version?: number } | undefined,
+  saved: { version?: number } | undefined,
+): boolean {
+  return Boolean(master) && (master?.version ?? 1) > (saved?.version ?? 0);
+}
+
 /** 表示用の件数フォーマット（4,200件） */
 export function formatCount(n: number): string {
   return `${n.toLocaleString("ja-JP")}件`;

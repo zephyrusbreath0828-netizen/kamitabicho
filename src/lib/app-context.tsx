@@ -40,7 +40,10 @@ import {
   touchLastSync,
 } from "@/lib/local-db";
 import { searchInArray } from "@/lib/search";
-import { nearestPrefecture } from "@/lib/regions";
+import { hasRegionUpdate, nearestPrefecture } from "@/lib/regions";
+import { packShrines } from "@/data/packs";
+import { listLocalPacks } from "@/lib/region-packs";
+import { runV12Migration, type MigrationReport } from "@/lib/migration";
 import type {
   Backend,
   BackendMode,
@@ -100,6 +103,14 @@ type AppContextValue = {
   syncing: boolean;
   syncNow: () => Promise<SyncOutcome>;
   downloadRegion: (regionId: RegionId) => Promise<number>;
+  /** 版数が上がった保存済み地域（未適用の更新） */
+  regionUpdates: RegionId[];
+  /** 起動時の版数確認 */
+  checkRegionUpdates: () => Promise<void>;
+  /** ユーザー承認後に地域データを更新する */
+  applyRegionUpdate: (regionId: RegionId) => Promise<number>;
+  /** v1.2 データ移行の結果（実行されなかった場合は null） */
+  migrationReport: MigrationReport | null;
   removeRegionData: (regionId: RegionId) => Promise<void>;
   suggestRegionForPosition: (pos: { latitude: number; longitude: number }) => RegionId | null;
   searchShrines: (params: ShrineSearchParams) => Promise<ShrineSearchResult>;
@@ -191,7 +202,30 @@ export function AppProvider({ children }: { children: ReactNode }) {
       .catch((e) => alive && setError(toUserMessage(e)));
     backend.listDeities().then((d) => alive && setDeities(d)).catch(() => undefined);
     backend.listBenefits().then((b) => alive && setBenefits(b)).catch(() => undefined);
-    backend.listRegions().then((r) => alive && setRegions(r)).catch(() => undefined);
+    backend
+      .listRegions()
+      .then((r) => {
+        if (!alive) return;
+        // 管理画面から登録した端末内パックも地域一覧に反映する
+        const local = listLocalPacks();
+        const merged = [...r];
+        for (const lp of local) {
+          if (!merged.some((m) => m.id === lp.region)) {
+            merged.push({
+              id: lp.region,
+              name: lp.name,
+              order: 90,
+              prefectures: [],
+              shrine_count: lp.shrine_count,
+              version: lp.version,
+              release: "available",
+              updated_at: lp.updated_at,
+            });
+          }
+        }
+        setRegions(merged);
+      })
+      .catch(() => undefined);
     return () => {
       alive = false;
     };
@@ -506,18 +540,61 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, [online, user?.uid, pendingVisits.length]);
 
   /* ---------------- v1.2: 地域ダウンロード ---------------- */
+  const [regionUpdates, setRegionUpdates] = useState<RegionId[]>([]);
+  const [migrationReport, setMigrationReport] = useState<MigrationReport | null>(null);
+
+  const checkRegionUpdates = useCallback(async () => {
+    try {
+      const saved = await listDownloads();
+      const next = saved
+        .filter((d) => hasRegionUpdate(regions.find((r) => r.id === d.region_id), d))
+        .map((d) => d.region_id);
+      setRegionUpdates(next);
+    } catch {
+      setRegionUpdates([]);
+    }
+  }, [regions]);
+
+  /** 起動時: 版数のみ確認（自動ダウンロードはしない） */
+  useEffect(() => {
+    if (!ready) return;
+    void checkRegionUpdates();
+  }, [ready, checkRegionUpdates]);
+
   const downloadRegion = useCallback(
     async (regionId: RegionId): Promise<number> => {
       const region = regions.find((r) => r.id === regionId);
-      // Firestore から該当地方の神社を取得（失敗時は同梱データ）
-      const result = await backend.searchShrines({ region: regionId, page: 1, pageSize: 5000 });
-      const rows = result.items.length ? result.items : SHRINES_V2.filter((s) => s.region === regionId);
+      // Firestore（region=該当地域）を正とし、無い場合は同梱パック → 同梱マスタの順にフォールバック
+      let rows: ShrineV2[] = [];
+      try {
+        const result = await backend.searchShrines({ region: regionId, page: 1, pageSize: 5000 });
+        rows = result.items;
+      } catch {
+        rows = [];
+      }
+      // 同梱パックの方が充実している場合はパックを優先（デモ・初期データでも実データを保存できる）
+      const pack = packShrines(regionId);
+      if (pack.length > rows.length) rows = pack;
+      if (!rows.length) rows = SHRINES_V2.filter((s) => s.region === regionId);
       if (!rows.length) throw new Error("この地域の神社データが見つかりませんでした。");
-      const count = await saveRegion(regionId, region?.name ?? regionId, rows, deities, benefits);
+      const count = await saveRegion(
+        regionId,
+        region?.name ?? regionId,
+        rows,
+        deities,
+        benefits,
+        region?.version ?? 1,
+      );
       await refreshLocal();
+      await checkRegionUpdates();
       return count;
     },
-    [backend, regions, deities, benefits, refreshLocal],
+    [backend, regions, deities, benefits, refreshLocal, checkRegionUpdates],
+  );
+
+  const applyRegionUpdate = useCallback(
+    async (regionId: RegionId) => downloadRegion(regionId),
+    [downloadRegion],
   );
 
   const removeRegionData = useCallback(
@@ -550,14 +627,25 @@ export function AppProvider({ children }: { children: ReactNode }) {
         const pool = local.length ? local : SHRINES_V2;
         return searchInArray(pool, params, ctx, local.length ? "local" : "bundled");
       }
-      // オンライン: Firestore（失敗時は同梱データへフォールバック）
+      // オンライン: 未保存の配布地域なら自動取得してから検索（利用者は意識しない）
+      if (params.region && (params.page ?? 1) === 1) {
+        try {
+          const saved = await listDownloads();
+          const region = regions.find((r) => r.id === params.region);
+          if (region && region.release !== "preparing" && !saved.some((d) => d.region_id === region.id)) {
+            await downloadRegion(region.id);
+          }
+        } catch {
+          /* 自動取得に失敗しても検索は続行する */
+        }
+      }
       try {
         return await backend.searchShrines(params);
       } catch {
         return searchInArray(SHRINES_V2, params, ctx, "bundled");
       }
     },
-    [backend, deities, benefits],
+    [backend, deities, benefits, regions, downloadRegion],
   );
 
   /* ---------------- 導出値 ---------------- */
@@ -577,6 +665,32 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const points = useMemo(() => computePoints(shrines, visits, goshuin), [shrines, visits, goshuin]);
   const benefitsCollection = useMemo(() => collectBenefits(benefits, shrines, visits), [benefits, shrines, visits]);
   const deitiesCollection = useMemo(() => collectDeities(deities, shrines, visits), [deities, shrines, visits]);
+
+  /* v1.2 データ移行（既存データは追加マージのみ・冪等） */
+  useEffect(() => {
+    if (!ready || !user || !profile) return;
+    let cancelled = false;
+    void (async () => {
+      const report = await runV12Migration({
+        backend,
+        uid: user.uid,
+        profile,
+        visits,
+        goshuin,
+        shrines,
+        shrinesV2: SHRINES_V2,
+        deities,
+        benefits,
+        unlocked: profile.achievements ?? {},
+      });
+      if (!cancelled && (!report.skipped || report.errors.length > 0)) setMigrationReport(report);
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // 認証直後の1回のみ
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ready, user?.uid]);
 
   /* 実績の新規解放を保存 */
   const unlockedIdsKey = achievements.filter((a) => a.unlocked).map((a) => a.id).join(",");
@@ -649,6 +763,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
     syncing,
     syncNow,
     downloadRegion,
+    regionUpdates,
+    checkRegionUpdates,
+    applyRegionUpdate,
+    migrationReport,
     removeRegionData,
     suggestRegionForPosition,
     searchShrines,

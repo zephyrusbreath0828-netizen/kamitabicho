@@ -21,8 +21,11 @@ export default function CheckInPanel({ shrine }: { shrine: Shrine }) {
   const [localError, setLocalError] = useState<string | null>(null);
   const [showSeal, setShowSeal] = useState(false);
 
+  // 座標未登録（データ配布パックの一部）の神社は距離判定を行わない
+  const noCoord = (shrine as { coord_accuracy?: string }).coord_accuracy === "unknown";
+
   const distance = useMemo(() => {
-    if (!position) return null;
+    if (!position || noCoord) return null;
     return distanceMeters(
       { latitude: position.latitude, longitude: position.longitude },
       { latitude: shrine.latitude, longitude: shrine.longitude },
@@ -31,10 +34,11 @@ export default function CheckInPanel({ shrine }: { shrine: Shrine }) {
 
   const within =
     position !== null &&
-    isWithinCheckinRadius(
+    (noCoord ||
+      isWithinCheckinRadius(
       { latitude: position.latitude, longitude: position.longitude },
-      { latitude: shrine.latitude, longitude: shrine.longitude },
-    );
+        { latitude: shrine.latitude, longitude: shrine.longitude },
+      ));
   const showDevTools = useMemo(() => devToolsEnabled(), []);
   const coarseAccuracy = position?.accuracy != null && position.accuracy > 150;
   const todayVisits = visits.filter(
@@ -42,13 +46,13 @@ export default function CheckInPanel({ shrine }: { shrine: Shrine }) {
   );
 
   const handleCheckIn = async () => {
-    if (!position || distance === null) {
+    if (!position || (!noCoord && distance === null)) {
       setLocalError("先に現在地を取得してください。");
       return;
     }
     if (!within) {
       setLocalError(
-        `神社から約 ${formatDistance(distance)} 離れています。参拝記録の登録は ${CHECKIN_RADIUS_M}m 以内で行えます。`,
+        `神社から約 ${formatDistance(distance ?? 0)} 離れています。参拝記録の登録は ${CHECKIN_RADIUS_M}m 以内で行えます。`,
       );
       return;
     }
@@ -58,7 +62,7 @@ export default function CheckInPanel({ shrine }: { shrine: Shrine }) {
       const visit = await checkIn(shrine, {
         latitude: position.latitude,
         longitude: position.longitude,
-        distance_m: distance,
+        distance_m: noCoord ? 0 : (distance ?? 0),
       });
       setDone(
         `${new Date(visit.visit_datetime).toLocaleString("ja-JP")} に参拝記録を登録しました（神社から ${formatDistance(visit.distance_m)}）${

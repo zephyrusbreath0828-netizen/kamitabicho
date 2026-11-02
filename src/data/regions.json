@@ -7,7 +7,10 @@
    "北海道"
   ],
   "shrine_count": 1,
-  "updated_at": "2026-10-31T11:55:43.116Z"
+  "updated_at": "2026-11-01T00:00:00.000Z",
+  "version": 1,
+  "release": "preparing",
+  "download_size": 0
  },
  {
   "id": "tohoku",
@@ -22,7 +25,10 @@
    "福島県"
   ],
   "shrine_count": 6,
-  "updated_at": "2026-10-31T11:55:43.116Z"
+  "updated_at": "2026-11-01T00:00:00.000Z",
+  "version": 1,
+  "release": "preparing",
+  "download_size": 0
  },
  {
   "id": "kanto",
@@ -38,7 +44,10 @@
    "神奈川県"
   ],
   "shrine_count": 17,
-  "updated_at": "2026-10-31T11:55:43.116Z"
+  "updated_at": "2026-11-01T00:00:00.000Z",
+  "version": 1,
+  "release": "preparing",
+  "download_size": 0
  },
  {
   "id": "chubu",
@@ -56,7 +65,10 @@
    "愛知県"
   ],
   "shrine_count": 20,
-  "updated_at": "2026-10-31T11:55:43.116Z"
+  "updated_at": "2026-11-01T00:00:00.000Z",
+  "version": 1,
+  "release": "preparing",
+  "download_size": 0
  },
  {
   "id": "kinki",
@@ -72,7 +84,10 @@
    "和歌山県"
   ],
   "shrine_count": 34,
-  "updated_at": "2026-10-31T11:55:43.116Z"
+  "updated_at": "2026-11-01T00:00:00.000Z",
+  "version": 1,
+  "release": "preparing",
+  "download_size": 0
  },
  {
   "id": "chugoku",
@@ -86,7 +101,10 @@
    "山口県"
   ],
   "shrine_count": 7,
-  "updated_at": "2026-10-31T11:55:43.116Z"
+  "updated_at": "2026-11-01T00:00:00.000Z",
+  "version": 1,
+  "release": "preparing",
+  "download_size": 0
  },
  {
   "id": "shikoku",
@@ -98,12 +116,16 @@
    "愛媛県",
    "高知県"
   ],
-  "shrine_count": 4,
-  "updated_at": "2026-10-31T11:55:43.116Z"
+  "shrine_count": 1079,
+  "updated_at": "2026-11-01T05:00:00.000Z",
+  "version": 1,
+  "release": "available",
+  "download_size": 515270,
+  "source": "openstreetmap"
  },
  {
   "id": "kyushu",
-  "name": "九州沖縄",
+  "name": "九州・沖縄地方",
   "order": 8,
   "prefectures": [
    "福岡県",
@@ -116,6 +138,9 @@
    "沖縄県"
   ],
   "shrine_count": 11,
-  "updated_at": "2026-10-31T11:55:43.116Z"
+  "updated_at": "2026-11-01T00:00:00.000Z",
+  "version": 1,
+  "release": "preparing",
+  "download_size": 0
  }
 ]

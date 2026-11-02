@@ -1,29 +1,37 @@
 "use client";
 
-/** 神社一覧（v1.2）: ページネーション＋地方/都道府県/参拝済み/お気に入り絞り込み */
+/**
+ * 神社一覧（v1.2-beta）
+ * ページネーション / 地方・都道府県・参拝済み絞り込み / 現在地からの半径検索 / 地図表示
+ */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import PageHeader from "@/components/PageHeader";
 import ShrineCard from "@/components/ShrineCard";
+import ShrineMap from "@/components/ShrineMap";
 import { EmptyState } from "@/components/ui";
 import { useApp } from "@/lib/app-context";
-import { REGION_LIST } from "@/lib/regions";
+import { distanceMeters } from "@/lib/geo";
+import { REGION_LIST, regionLabel } from "@/lib/regions";
 import type { RegionId, ShrineSearchResult, ShrineV2 } from "@/lib/types";
 import { usePosition } from "@/lib/use-position";
 
 type Filter = "all" | "visited" | "favorite";
 const PAGE_SIZE = 20;
+const RADII = [1, 5, 10, 50] as const;
 
 export default function ShrinesPage() {
-  const { searchShrines, visitedShrineIds, favorites, visitCountOf, shrines, online } = useApp();
-  const { position } = usePosition();
+  const { searchShrines, visitedShrineIds, favorites, visitCountOf, shrines, online, regions } = useApp();
+  const { position, locate } = usePosition();
   const [query, setQuery] = useState("");
   const [pref, setPref] = useState<string>("すべて");
   const [region, setRegion] = useState<RegionId | "all">("all");
   const [filter, setFilter] = useState<Filter>("all");
+  const [radiusKm, setRadiusKm] = useState<number | null>(null);
   const [result, setResult] = useState<ShrineSearchResult | null>(null);
   const [items, setItems] = useState<ShrineV2[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [showMap, setShowMap] = useState(false);
   const pageRef = useRef(1);
   const reqRef = useRef(0);
 
@@ -49,7 +57,8 @@ export default function ShrinesPage() {
           region: region === "all" ? undefined : region,
           near: position ? { latitude: position.latitude, longitude: position.longitude } : null,
           page,
-          pageSize: PAGE_SIZE,
+          // 半径検索時は広めに取得してから端末側で距離で絞る
+          pageSize: radiusKm ? 500 : PAGE_SIZE,
         });
         if (reqId !== reqRef.current) return;
         setResult(res);
@@ -62,33 +71,51 @@ export default function ShrinesPage() {
         }
       }
     },
-    [searchShrines, query, pref, region, position],
+    [searchShrines, query, pref, region, position, radiusKm],
   );
 
   useEffect(() => {
     void runSearch(1, false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [query, pref, region, position?.latitude, position?.longitude]);
+  }, [query, pref, region, position?.latitude, position?.longitude, radiusKm]);
 
-  const list = useMemo(
-    () =>
-      items.filter((shrine) =>
-        filter === "visited"
-          ? visitedShrineIds.includes(shrine.id)
-          : filter === "favorite"
-            ? favorites.includes(shrine.id)
-            : true,
+  const withDistance = useMemo(() => {
+    if (!position) return items.map((s) => ({ shrine: s, distance: null as number | null }));
+    return items.map((s) => ({
+      shrine: s,
+      distance: distanceMeters(
+        { latitude: position.latitude, longitude: position.longitude },
+        { latitude: s.latitude, longitude: s.longitude },
       ),
-    [items, filter, visitedShrineIds, favorites],
+    }));
+  }, [items, position]);
+
+  const list = useMemo(() => {
+    const max = radiusKm ? radiusKm * 1000 : null;
+    return withDistance.filter(({ shrine, distance }) => {
+      if (max !== null) {
+        if (distance === null || distance > max) return false;
+      }
+      if (filter === "visited") return visitedShrineIds.includes(shrine.id);
+      if (filter === "favorite") return favorites.includes(shrine.id);
+      return true;
+    });
+  }, [withDistance, radiusKm, filter, visitedShrineIds, favorites]);
+
+  const markers = useMemo(
+    () =>
+      list.slice(0, 60).map(({ shrine }) => ({
+        id: shrine.id,
+        name: shrine.name,
+        latitude: shrine.latitude,
+        longitude: shrine.longitude,
+      })),
+    [list],
   );
 
   return (
     <div>
-      <PageHeader
-        title="神社をさがす"
-        subtitle={`${shrines.length}社・${prefectures.length - 1}都道府県を収録`}
-        eyebrow="SHRINES"
-      />
+      <PageHeader title="神社をさがす" subtitle={`${shrines.length}社・${prefectures.length - 1}都道府県を収録`} eyebrow="SHRINES" />
 
       <div className="sticky top-0 z-20 space-y-2.5 border-b border-washi-line bg-washi/95 px-4 py-3 backdrop-blur">
         <input
@@ -113,6 +140,38 @@ export default function ShrinesPage() {
               {label}
             </button>
           ))}
+          <button
+            onClick={() => setShowMap((v) => !v)}
+            className={`chip chip-btn ml-auto ${showMap ? "chip-active" : ""}`}
+            aria-pressed={showMap}
+          >
+            地図
+          </button>
+        </div>
+
+        <div className="no-scrollbar flex items-center gap-1.5 overflow-x-auto">
+          <span className="shrink-0 text-[0.68rem] text-sumi-mute">現在地から</span>
+          <button
+            onClick={() => setRadiusKm(null)}
+            className={`chip chip-btn shrink-0 ${radiusKm === null ? "chip-active" : ""}`}
+            aria-pressed={radiusKm === null}
+          >
+            全域
+          </button>
+          {RADII.map((km) => (
+            <button
+              key={km}
+              onClick={() => {
+                if (!position) void locate();
+                setRadiusKm(km);
+              }}
+              className={`chip chip-btn shrink-0 ${radiusKm === km ? "chip-active" : ""}`}
+              aria-pressed={radiusKm === km}
+              data-radius={km}
+            >
+              {km}km
+            </button>
+          ))}
         </div>
       </div>
 
@@ -123,16 +182,19 @@ export default function ShrinesPage() {
         >
           全国
         </button>
-        {REGION_LIST.map((r) => (
+        {(regions.length ? regions : REGION_LIST)
+          .slice()
+          .sort((a, b) => (a.order ?? 99) - (b.order ?? 99))
+          .map((r) => (
           <button
             key={r.id}
             onClick={() => setRegion(r.id)}
             className={`chip chip-btn shrink-0 ${region === r.id ? "chip-active" : ""}`}
             aria-pressed={region === r.id}
           >
-            {r.name}
+            {r.name || regionLabel(r.id)}
           </button>
-        ))}
+          ))}
       </div>
 
       <div className="no-scrollbar flex gap-2 overflow-x-auto border-b border-washi-line bg-paper/40 px-4 py-2">
@@ -148,11 +210,22 @@ export default function ShrinesPage() {
         ))}
       </div>
 
+      {showMap && (
+        <div className="border-b border-washi-line px-4 py-3">
+          <ShrineMap markers={markers} center={position} height={220} />
+          {!position && (
+            <button className="btn btn-outline btn-sm mt-2 w-full" onClick={() => void locate()}>
+              現在地を取得して地図を中心に合わせる
+            </button>
+          )}
+        </div>
+      )}
+
       <div className="space-y-2.5 px-4 py-4">
         <div className="flex items-center justify-between">
           <p className="text-[0.76rem] text-sumi-mute">
-            {result ? `${result.total.toLocaleString("ja-JP")}件` : "検索中…"}
-            {result && (
+            {radiusKm ? `半径${radiusKm}km・${list.length}件` : result ? `${result.total.toLocaleString("ja-JP")}件` : "検索中…"}
+            {result && !radiusKm && (
               <span className="ml-1.5 text-[0.66rem]">
                 （{result.source === "firestore" ? "クラウド" : result.source === "local" ? "端末データ" : "同梱データ"}
                 {!online && "・オフライン"}）
@@ -162,6 +235,12 @@ export default function ShrinesPage() {
           {loading && <span className="text-[0.7rem] text-sumi-mute">読み込み中…</span>}
         </div>
 
+        {radiusKm && !position && (
+          <p className="rounded-xl border border-kin/40 bg-[rgba(168,137,79,0.1)] px-3 py-2 text-[0.78rem] text-[#7a5f2c]">
+            現在地を取得すると半径{radiusKm}kmの神社を表示します。位置情報を許可してください。
+          </p>
+        )}
+
         {list.length === 0 ? (
           <EmptyState
             title="該当する神社がありません"
@@ -170,10 +249,11 @@ export default function ShrinesPage() {
           />
         ) : (
           <div className="stagger space-y-2.5">
-            {list.map((shrine) => (
+            {list.map(({ shrine, distance }) => (
               <ShrineCard
                 key={shrine.id}
                 shrine={shrine}
+                distance={distance}
                 visited={visitedShrineIds.includes(shrine.id)}
                 visitCount={visitCountOf(shrine.id)}
               />
@@ -181,7 +261,7 @@ export default function ShrinesPage() {
           </div>
         )}
 
-        {result?.hasMore && (
+        {result?.hasMore && !radiusKm && (
           <button
             className="btn btn-outline w-full"
             disabled={loadingMore}
