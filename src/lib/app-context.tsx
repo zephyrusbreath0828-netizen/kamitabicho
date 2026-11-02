@@ -140,6 +140,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<SessionUser | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [shrines, setShrines] = useState<ShrineV2[]>(SHRINES_V2);
+  /** ダウンロード済み地域パック（IndexedDB）。検索・一覧・地図・詳細で標準データと統合する */
+  const [localShrines, setLocalShrines] = useState<ShrineV2[]>([]);
   const [visits, setVisits] = useState<Visit[]>([]);
   const [goshuin, setGoshuin] = useState<Goshuin[]>([]);
   const [favorites, setFavorites] = useState<string[]>([]);
@@ -164,16 +166,18 @@ export function AppProvider({ children }: { children: ReactNode }) {
   /* ---------------- 端末データの読み込み ---------------- */
   const refreshLocal = useCallback(async () => {
     if (!(await isLocalDbAvailable())) return;
-    const [dl, pending, last, count] = await Promise.all([
+    const [dl, pending, last, count, saved] = await Promise.all([
       listDownloads(),
       listPendingVisits(),
       getLastSyncAt(),
       localShrineCount(),
+      allLocalShrines(),
     ]);
     setDownloads(dl);
     setPendingVisits(pending);
     setLastSyncAt(last);
     setLocalShrineTotal(count);
+    setLocalShrines(saved as ShrineV2[]);
   }, []);
 
   /* ---------------- オンライン状態 ---------------- */
@@ -615,20 +619,26 @@ export function AppProvider({ children }: { children: ReactNode }) {
   );
 
   /* ---------------- v1.2: 検索 ---------------- */
+  /** 標準神社＋ダウンロード済み地域パック（同一IDはパックの値を優先） */
+  const allShrines = useMemo(() => {
+    if (!localShrines.length) return shrines;
+    const map = new Map<string, ShrineV2>();
+    for (const s of shrines) map.set(s.id, s);
+    for (const s of localShrines) map.set(s.id, s);
+    return Array.from(map.values());
+  }, [shrines, localShrines]);
+
   const searchShrines = useCallback(
     async (params: ShrineSearchParams): Promise<ShrineSearchResult> => {
       const ctx = {
         deityNames: new Map(deities.map((d) => [d.id, d.name])),
         benefitNames: new Map(benefits.map((b) => [b.id, b.name])),
       };
-      // オフライン: 端末保存 → 同梱データの順
-      if (typeof navigator !== "undefined" && !navigator.onLine) {
-        const local = await allLocalShrines();
-        const pool = local.length ? local : SHRINES_V2;
-        return searchInArray(pool, params, ctx, local.length ? "local" : "bundled");
-      }
+      // 検索対象 = 標準神社データ ＋ ダウンロード済み地域パック（オンライン/オフライン共通）
+      const pool = allShrines;
+
       // オンライン: 未保存の配布地域なら自動取得してから検索（利用者は意識しない）
-      if (params.region && (params.page ?? 1) === 1) {
+      if (typeof navigator !== "undefined" && navigator.onLine && params.region && (params.page ?? 1) === 1) {
         try {
           const saved = await listDownloads();
           const region = regions.find((r) => r.id === params.region);
@@ -639,32 +649,48 @@ export function AppProvider({ children }: { children: ReactNode }) {
           /* 自動取得に失敗しても検索は続行する */
         }
       }
-      try {
-        return await backend.searchShrines(params);
-      } catch {
-        return searchInArray(SHRINES_V2, params, ctx, "bundled");
+
+      // 薄い端末データしか無い場合のみ Firestore の該当地域を補完（パックがあればそちらを優先）
+      if (typeof navigator !== "undefined" && navigator.onLine) {
+        try {
+          const covered = params.region
+            ? pool.filter((s) => s.region === params.region).length
+            : pool.filter((s) => !params.prefecture || s.prefecture === params.prefecture).length;
+          if (covered < 30) {
+            const remote = await backend.searchShrines({ ...params, page: 1, pageSize: 2000 });
+            if (remote.items.length) {
+              return searchInArray([...pool, ...remote.items], params, ctx, "firestore");
+            }
+          }
+        } catch {
+          /* Firestore 不達時は端末データで継続 */
+        }
       }
+
+      const local = localShrines.length;
+      return searchInArray(pool, params, ctx, local ? "local" : "bundled");
     },
-    [backend, deities, benefits, regions, downloadRegion],
+    [backend, deities, benefits, regions, downloadRegion, allShrines, localShrines],
   );
 
   /* ---------------- 導出値 ---------------- */
-  const shrineMap = useMemo(() => new Map(shrines.map((s) => [s.id, s])), [shrines]);
+  const shrineMap = useMemo(() => new Map(allShrines.map((s) => [s.id, s])), [allShrines]);
   const visitCountMap = useMemo(() => {
     const m = new Map<string, number>();
     for (const v of visits) m.set(v.shrine_id, (m.get(v.shrine_id) ?? 0) + 1);
     return m;
   }, [visits]);
 
+  // 実績・達成率は標準100社を基準に維持（既存ユーザーの進捗を変えない）
   const stats = useMemo(() => computeStats(shrines, visits, goshuin), [shrines, visits, goshuin]);
   const achievements = useMemo(
     () => computeAchievements(stats, profile?.achievements ?? {}, { visits, shrines }),
     [stats, profile?.achievements, visits, shrines],
   );
   const unlockedAchievements = achievements.filter((a) => a.unlocked).length;
-  const points = useMemo(() => computePoints(shrines, visits, goshuin), [shrines, visits, goshuin]);
-  const benefitsCollection = useMemo(() => collectBenefits(benefits, shrines, visits), [benefits, shrines, visits]);
-  const deitiesCollection = useMemo(() => collectDeities(deities, shrines, visits), [deities, shrines, visits]);
+  const points = useMemo(() => computePoints(allShrines, visits, goshuin), [allShrines, visits, goshuin]);
+  const benefitsCollection = useMemo(() => collectBenefits(benefits, allShrines, visits), [benefits, allShrines, visits]);
+  const deitiesCollection = useMemo(() => collectDeities(deities, allShrines, visits), [deities, allShrines, visits]);
 
   /* v1.2 データ移行（既存データは追加マージのみ・冪等） */
   useEffect(() => {
@@ -737,7 +763,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     ready,
     user,
     profile,
-    shrines,
+    shrines: allShrines,
     visits,
     goshuin,
     favorites,

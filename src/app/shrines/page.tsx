@@ -20,7 +20,8 @@ const PAGE_SIZE = 20;
 const RADII = [1, 5, 10, 50] as const;
 
 export default function ShrinesPage() {
-  const { searchShrines, visitedShrineIds, favorites, visitCountOf, shrines, online, regions } = useApp();
+  const { searchShrines, visitedShrineIds, favorites, visitCountOf, shrines, online, regions, localShrineTotal } =
+    useApp();
   const { position, locate } = usePosition();
   const [query, setQuery] = useState("");
   const [pref, setPref] = useState<string>("すべて");
@@ -77,7 +78,9 @@ export default function ShrinesPage() {
   useEffect(() => {
     void runSearch(1, false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [query, pref, region, position?.latitude, position?.longitude, radiusKm]);
+    // 地域パックの読み込み完了後に再検索（初回描画時は未読込のため件数が少なくなる）
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [query, pref, region, position?.latitude, position?.longitude, radiusKm, localShrineTotal]);
 
   const withDistance = useMemo(() => {
     if (!position) return items.map((s) => ({ shrine: s, distance: null as number | null }));
