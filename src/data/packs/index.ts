@@ -6,6 +6,7 @@
  * この同梱パックを使う。将来 kinki / chugoku … を追加する場合は JSON を足すだけでよい。
  */
 import shikokuJson from "./shikoku.json";
+import chugokuJson from "./chugoku.json";
 import type { ShrineV2 } from "@/lib/types";
 
 export type PackShrine = {
@@ -25,6 +26,7 @@ export type PackShrine = {
 
 const RAW: Record<string, PackShrine[]> = {
   shikoku: shikokuJson as PackShrine[],
+  chugoku: chugokuJson as PackShrine[],
 };
 
 /** パックが存在する地域ID */
