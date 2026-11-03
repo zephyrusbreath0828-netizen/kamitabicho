@@ -16,6 +16,7 @@ import { useApp } from "@/lib/app-context";
 import { formatDateTime } from "@/lib/format";
 import { readRegionStates, type SavedRegionState } from "@/lib/local-db";
 import { REGION_LIST, regionLabel } from "@/lib/regions";
+import { packCount } from "@/data/packs";
 import type { RegionId } from "@/lib/types";
 
 type State = "none" | "saved" | "update" | "downloading" | "error";
@@ -45,7 +46,12 @@ export default function ShrineDataPage() {
       (regions.length ? regions : REGION_LIST)
         .slice()
         .sort((a, b) => (a.order ?? 99) - (b.order ?? 99))
-        .map((r) => ({ ...r, name: r.name || regionLabel(r.id) })),
+        .map((r) => ({
+          ...r,
+          name: r.name || regionLabel(r.id),
+          // 神社数はパック JSON の件数を正とする（regions.json の固定値に依存しない）
+          shrine_count: r.id ? (packCount(r.id) || r.shrine_count || 0) : (r.shrine_count ?? 0),
+        })),
     [regions],
   );
   const [mirror, setMirror] = useState<Record<string, SavedRegionState>>({});
@@ -208,6 +214,9 @@ export default function ShrineDataPage() {
               const state = stateOf(region.id);
               const info = saved.get(region.id);
               const count = region.shrine_count ?? 0;
+              // パック JSON が無く、配布状態も preparing の地域は「準備中」
+              // パック JSON が存在しない地域は配布前（準備中）として扱う
+              const preparing = count === 0 || region.release === "preparing";
               return (
                 <li key={region.id} className="wa-card p-3.5" data-region={region.id} data-state={state}>
                   <div className="flex items-start gap-3">
@@ -243,22 +252,27 @@ export default function ShrineDataPage() {
                   </div>
 
                   <div className="mt-2.5 flex gap-2">
-                    <button
-                      className={`btn btn-sm flex-1 ${state === "saved" || state === "update" ? "btn-outline" : "btn-primary"}`}
-                      onClick={() => void runDownload(region.id)}
-                      disabled={state === "downloading" || bulk || !online}
-                      aria-label={`${region.name}をダウンロード`}
-                    >
-                      {state === "downloading"
-                        ? "ダウンロード中…"
-                        : state === "update"
-                          ? "更新する"
-                          : state === "saved"
-                            ? "再ダウンロード"
-                            : state === "error"
-                              ? "再試行"
-                              : "ダウンロード"}
-                    </button>
+                    {preparing ? (
+                      <span className="chip chip-btn flex-1 cursor-default justify-center text-sumi-mute">準備中</span>
+                    ) : (
+                      <button
+                        className={`btn btn-sm flex-1 ${state === "saved" || state === "update" ? "btn-outline" : "btn-primary"}`}
+                        onClick={() => void runDownload(region.id)}
+                        disabled={state === "downloading" || bulk || !online || preparing}
+                        aria-label={`${region.name}をダウンロード`}
+                      >
+                        {state === "downloading"
+                          ? "ダウンロード中…"
+                          : state === "update"
+                            ? "更新する"
+                            : state === "saved"
+                              ? "再ダウンロード"
+                              : state === "error"
+                                ? "再試行"
+                                : "ダウンロード"}
+                      </button>
+                    )}
+
                     {state !== "none" && state !== "downloading" && (
                       <button
                         className="btn btn-sm btn-outline px-3"

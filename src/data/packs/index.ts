@@ -66,3 +66,19 @@ export function packShrines(regionId: string): ShrineV2[] {
 export function packCount(regionId: string): number {
   return RAW[regionId]?.length ?? 0;
 }
+
+/**
+ * 地域の神社数（唯一の正はパック JSON の件数）
+ *
+ * regions.json の shrine_count は表示に使わない。
+ * パック JSON が無い地域のみ、渡された fallback（標準マスタ件数など）を使う。
+ */
+export function regionShrineCount(regionId: string, fallback = 0): number {
+  const n = packCount(regionId);
+  return n > 0 ? n : fallback;
+}
+
+/** 地域一覧の shrine_count をパック JSON の件数で確定させる */
+export function withPackCounts<T extends { id: string; shrine_count?: number }>(regions: T[]): T[] {
+  return regions.map((r) => ({ ...r, shrine_count: regionShrineCount(r.id, r.shrine_count ?? 0) }));
+}
