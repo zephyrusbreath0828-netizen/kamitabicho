@@ -83,11 +83,12 @@
    "奈良県",
    "和歌山県"
   ],
-  "shrine_count": 0,
-  "updated_at": "2026-11-01T00:00:00.000Z",
+  "shrine_count": 3555,
+  "updated_at": "2026-11-04T00:00:00.000Z",
   "version": 1,
-  "release": "preparing",
-  "download_size": 0
+  "release": "available",
+  "download_size": 1745065,
+  "source": "openstreetmap"
  },
  {
   "id": "chugoku",
@@ -118,7 +119,7 @@
    "高知県"
   ],
   "shrine_count": 1079,
-  "updated_at": "2026-11-01T05:00:00.000Z",
+  "updated_at": "2026-11-04T00:00:00.000Z",
   "version": 1,
   "release": "available",
   "download_size": 515270,

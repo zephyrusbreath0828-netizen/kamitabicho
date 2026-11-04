@@ -6,7 +6,7 @@
  * 認証ガード（未ログイン → /login、ログイン済みで /login → 元の画面 or ホーム）を
  * **ここ一箇所**で行う。v1.0 はログイン画面とシェルの両方が router.replace を呼び、
  * さらに ?autologin=1 の判定が残って遷移が止まることがあったため、
- * v1.1 では遷移の起点を AuthGate に集約し、二重遷移を排除した。
+ * v1.4 では遷移の起点を AuthGate に集約し、二重遷移を排除した。
  */
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";

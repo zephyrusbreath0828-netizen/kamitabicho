@@ -7,6 +7,7 @@
  */
 import shikokuJson from "./shikoku.json";
 import chugokuJson from "./chugoku.json";
+import kinkiJson from "./kinki.json";
 import type { ShrineV2 } from "@/lib/types";
 
 export type PackShrine = {
@@ -27,6 +28,7 @@ export type PackShrine = {
 const RAW: Record<string, PackShrine[]> = {
   shikoku: shikokuJson as PackShrine[],
   chugoku: chugokuJson as PackShrine[],
+  kinki: kinkiJson as PackShrine[],
 };
 
 /** パックが存在する地域ID */

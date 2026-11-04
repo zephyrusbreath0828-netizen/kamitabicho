@@ -41,9 +41,9 @@ import {
 } from "@/lib/local-db";
 import { searchInArray } from "@/lib/search";
 import { hasRegionUpdate, nearestPrefecture } from "@/lib/regions";
-import { packShrines } from "@/data/packs";
+import { packShrines, packCount, withPackCounts } from "@/data/packs";
 import { listLocalPacks } from "@/lib/region-packs";
-import { runV12Migration, type MigrationReport } from "@/lib/migration";
+type MigrationReport = { from: number; to: number; skipped: boolean; legacyVisits: number; points: number; benefits: number; deities: number; errors: string[] };
 import type {
   Backend,
   BackendMode,
@@ -150,7 +150,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [migration, setMigration] = useState<MigrationResult | null>(null);
   const [deities, setDeities] = useState<Deity[]>(DEITIES);
   const [benefits, setBenefits] = useState<Benefit[]>(BENEFITS);
-  const [regions, setRegions] = useState<Region[]>(REGIONS);
+  // 表示件数はパック JSON から算出する（regions.json の固定値は使わない）
+  const [regions, setRegions] = useState<Region[]>(() => withPackCounts(REGIONS));
 
   // v1.2
   const [online, setOnline] = useState(true);
@@ -227,7 +228,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
             });
           }
         }
-        setRegions(merged);
+        setRegions(withPackCounts(merged));
       })
       .catch(() => undefined);
     return () => {
@@ -692,31 +693,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const benefitsCollection = useMemo(() => collectBenefits(benefits, allShrines, visits), [benefits, allShrines, visits]);
   const deitiesCollection = useMemo(() => collectDeities(deities, allShrines, visits), [deities, allShrines, visits]);
 
-  /* v1.2 データ移行（既存データは追加マージのみ・冪等） */
-  useEffect(() => {
-    if (!ready || !user || !profile) return;
-    let cancelled = false;
-    void (async () => {
-      const report = await runV12Migration({
-        backend,
-        uid: user.uid,
-        profile,
-        visits,
-        goshuin,
-        shrines,
-        shrinesV2: SHRINES_V2,
-        deities,
-        benefits,
-        unlocked: profile.achievements ?? {},
-      });
-      if (!cancelled && (!report.skipped || report.errors.length > 0)) setMigrationReport(report);
-    })();
-    return () => {
-      cancelled = true;
-    };
-    // 認証直後の1回のみ
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ready, user?.uid]);
 
   /* 実績の新規解放を保存 */
   const unlockedIdsKey = achievements.filter((a) => a.unlocked).map((a) => a.id).join(",");
