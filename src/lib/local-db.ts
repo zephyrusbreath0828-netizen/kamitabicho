@@ -203,6 +203,20 @@ export async function touchLastSync(): Promise<void> {
 }
 
 /** 保存済みデータを全件取得（検索・近傍検索用） */
+/** 管理画面で登録したパックの実データを保存する（キー: pack:<region>） */
+export async function savePackData(regionId: string, json: string): Promise<void> {
+  const db = getDb();
+  if (!db) return;
+  await db.meta.put({ key: `pack:${regionId}`, value: json });
+}
+
+export async function getPackData(regionId: string): Promise<string | null> {
+  const db = getDb();
+  if (!db) return null;
+  const row = await db.meta.get(`pack:${regionId}`);
+  return row?.value ?? null;
+}
+
 export async function allLocalShrines(): Promise<ShrineV2[]> {
   const db = getDb();
   if (!db) return [];

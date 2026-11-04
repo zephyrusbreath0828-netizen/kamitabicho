@@ -950,5 +950,96 @@
   "description": "豊玉比売命（鹿児島神宮のご祭神）",
   "imageUrl": null,
   "shrine_count": 1
+ },
+ {
+  "id": "d_倭迹迹日百襲媛命",
+  "name": "倭迹迹日百襲媛命",
+  "description": "孝霊天皇の皇女。祟神を鎮める巫女的な性格を持ち、厄除けの神として信仰される。",
+  "imageUrl": null,
+  "shrine_count": 0
+ },
+ {
+  "id": "d_石土毘古神",
+  "name": "石土毘古神",
+  "description": "石鎚山の神。力強く岩を司る山岳神で、開運・厄除けの信仰を集める。",
+  "imageUrl": null,
+  "shrine_count": 0
+ },
+ {
+  "id": "d_一言主大神",
+  "name": "一言主大神",
+  "description": "一言だけ願いを叶えると伝わる神。土佐神社の主祭神で、厄除け・開運の神。",
+  "imageUrl": null,
+  "shrine_count": 0
+ },
+ {
+  "id": "d_味鋺高彦根神",
+  "name": "味鋺高彦根神",
+  "description": "大国主神の子神。雷・剣の神として知られ、武勇と開運を司る。",
+  "imageUrl": null,
+  "shrine_count": 0
+ },
+ {
+  "id": "d_大宜都比売命",
+  "name": "大宜都比売命",
+  "description": "阿波国に伝わる食物の女神。粟・五穀を司り、衣食住の守護神とされる。",
+  "imageUrl": null,
+  "shrine_count": 0
+ },
+ {
+  "id": "d_菅原道真",
+  "name": "菅原道真",
+  "description": "学問・文芸の神として信仰される天神。天満宮の祭神。",
+  "imageUrl": null,
+  "shrine_count": 0
+ },
+ {
+  "id": "d_宇迦之御魂神",
+  "name": "宇迦之御魂神",
+  "description": "稲荷神。五穀豊穣・商売繁盛・金運の神として全国で祀られる。",
+  "imageUrl": null,
+  "shrine_count": 0
+ },
+ {
+  "id": "d_底筒男命",
+  "name": "底筒男命",
+  "description": "住吉三神の一柱。航海・海上安全を守る海神。",
+  "imageUrl": null,
+  "shrine_count": 0
+ },
+ {
+  "id": "d_中筒男命",
+  "name": "中筒男命",
+  "description": "住吉三神の一柱。航海・海上安全を守る海神。",
+  "imageUrl": null,
+  "shrine_count": 0
+ },
+ {
+  "id": "d_表筒男命",
+  "name": "表筒男命",
+  "description": "住吉三神の一柱。航海・海上安全を守る海神。",
+  "imageUrl": null,
+  "shrine_count": 0
+ },
+ {
+  "id": "d_火之迦具土神",
+  "name": "火之迦具土神",
+  "description": "火の神。愛宕・秋葉神社に祀られ、火防・厄除けの神。",
+  "imageUrl": null,
+  "shrine_count": 0
+ },
+ {
+  "id": "d_別雷神",
+  "name": "別雷神",
+  "description": "賀茂神社の祭神。雷を司り、厄除け・開運・縁結びの神。",
+  "imageUrl": null,
+  "shrine_count": 0
+ },
+ {
+  "id": "d_大山祇神",
+  "name": "大山祇神",
+  "description": "山の神。三島神社・大山祇神社に祀られ、海上安全・五穀豊穣の神。",
+  "imageUrl": null,
+  "shrine_count": 0
  }
 ]

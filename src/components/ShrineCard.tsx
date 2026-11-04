@@ -24,7 +24,7 @@ export default function ShrineCard({
         <Link href={`/shrines/${shrine.id}`} className="block" aria-label={`${shrine.name}の詳細`}>
           <div
             className="h-[104px] w-full bg-washi-deep bg-cover bg-center"
-            style={{ backgroundImage: `url(${shrine.image_url})` }}
+            style={shrine.image_url ? { backgroundImage: `url(${shrine.image_url})` } : undefined}
             aria-hidden
           />
           <div className="px-3 py-2.5">

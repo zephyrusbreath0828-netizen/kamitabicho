@@ -26,6 +26,7 @@ import {
   type RegionPack,
 } from "@/lib/region-packs";
 import type { Region } from "@/lib/types";
+import { savePackData } from "@/lib/local-db";
 
 type Row = { region: string; name: string; version: number; shrine_count: number; updated_at?: string; release?: string };
 
@@ -105,6 +106,8 @@ export default function AdminPacksPage() {
     try {
       if (isFirebase) await registerPack(parsed, { enabled });
       saveLocalPack(parsed, enabled);
+      // ダウンロード時に使う実データも端末へ保存（同梱していない地域のため）
+      await savePackData(parsed.region, JSON.stringify(parsed.shrines));
       logPackAction(user?.uid ?? "local", "register", parsed.region, `${parsed.shrines.length}件 v${parsed.version}`);
       setMessage(
         `${parsed.name ?? parsed.region}（${parsed.shrines.length}件・v${parsed.version}）を登録しました。利用者の神社データ管理に表示されます。`,

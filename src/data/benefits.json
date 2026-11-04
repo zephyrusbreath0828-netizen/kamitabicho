@@ -19,7 +19,7 @@
  },
  {
   "id": "gakugyo",
-  "name": "学業",
+  "name": "学業成就",
   "category": "学問",
   "description": "学業成就・合格祈願の御利益。"
  },
@@ -70,5 +70,29 @@
   "name": "芸能上達",
   "category": "技芸",
   "description": "技芸・芸能・技術の上達。"
+ },
+ {
+  "id": "anzan",
+  "name": "安産",
+  "category": "縁",
+  "description": "安産・子授け・子育ての御利益。"
+ },
+ {
+  "id": "byoki",
+  "name": "病気平癒",
+  "category": "身体",
+  "description": "病気の平癒・無病息災の御利益。"
+ },
+ {
+  "id": "kaijo",
+  "name": "海上安全",
+  "category": "守護",
+  "description": "航海・漁業・海上交通の安全を守る御利益。"
+ },
+ {
+  "id": "kokka",
+  "name": "国家安泰",
+  "category": "国",
+  "description": "国家の安泰・世の平和を願う御利益。"
  }
 ]

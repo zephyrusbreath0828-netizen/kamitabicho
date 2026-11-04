@@ -37,11 +37,13 @@ import {
   queueVisit,
   removeRegion as removeRegionDb,
   saveRegion,
+  savePackData,
+  getPackData,
   touchLastSync,
 } from "@/lib/local-db";
 import { searchInArray } from "@/lib/search";
 import { hasRegionUpdate, nearestPrefecture } from "@/lib/regions";
-import { packShrines, packCount, withPackCounts } from "@/data/packs";
+import { applySubMasters, packShrines, packShrinesFromJson, packCount, withPackCounts } from "@/data/packs";
 import { listLocalPacks } from "@/lib/region-packs";
 type MigrationReport = { from: number; to: number; skipped: boolean; legacyVisits: number; points: number; benefits: number; deities: number; errors: string[] };
 import type {
@@ -215,6 +217,18 @@ export function AppProvider({ children }: { children: ReactNode }) {
         const local = listLocalPacks();
         const merged = [...r];
         for (const lp of local) {
+          const idx = merged.findIndex((m) => m.id === lp.region);
+          if (idx >= 0) {
+            // 管理画面から登録したパックは、同梱定義より優先して件数・状態を上書きする
+            merged[idx] = {
+              ...merged[idx],
+              shrine_count: lp.shrine_count,
+              version: lp.version,
+              release: "available",
+              updated_at: lp.updated_at,
+            };
+            continue;
+          }
           if (!merged.some((m) => m.id === lp.region)) {
             merged.push({
               id: lp.region,
@@ -578,7 +592,18 @@ export function AppProvider({ children }: { children: ReactNode }) {
         rows = [];
       }
       // 同梱パックの方が充実している場合はパックを優先（デモ・初期データでも実データを保存できる）
-      const pack = packShrines(regionId);
+      let pack = packShrines(regionId);
+      if (!pack.length) {
+        // 管理画面から登録したパック（同梱していない地域）を IndexedDB から読み出す
+        const raw = await getPackData(regionId);
+        if (raw) {
+          try {
+            pack = packShrinesFromJson(raw, regionId);
+          } catch {
+            pack = [];
+          }
+        }
+      }
       if (pack.length > rows.length) rows = pack;
       if (!rows.length) rows = SHRINES_V2.filter((s) => s.region === regionId);
       if (!rows.length) throw new Error("この地域の神社データが見つかりませんでした。");
@@ -622,11 +647,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
   /* ---------------- v1.2: 検索 ---------------- */
   /** 標準神社＋ダウンロード済み地域パック（同一IDはパックの値を優先） */
   const allShrines = useMemo(() => {
-    if (!localShrines.length) return shrines;
+    if (!localShrines.length) return applySubMasters(shrines);
     const map = new Map<string, ShrineV2>();
     for (const s of shrines) map.set(s.id, s);
     for (const s of localShrines) map.set(s.id, s);
-    return Array.from(map.values());
+    return applySubMasters(Array.from(map.values()));
   }, [shrines, localShrines]);
 
   const searchShrines = useCallback(
@@ -636,7 +661,22 @@ export function AppProvider({ children }: { children: ReactNode }) {
         benefitNames: new Map(benefits.map((b) => [b.id, b.name])),
       };
       // 検索対象 = 標準神社データ ＋ ダウンロード済み地域パック（オンライン/オフライン共通）
-      const pool = allShrines;
+      // 画面の状態反映より先に検索が走る場合があるため、未読込なら IndexedDB を直接参照する
+      let localRows = localShrines;
+      if (!localRows.length) {
+        try {
+          localRows = (await allLocalShrines()) as ShrineV2[];
+        } catch {
+          localRows = [];
+        }
+      }
+      let pool = allShrines;
+      if (localRows.length && localRows.length !== localShrines.length) {
+        const map = new Map<string, ShrineV2>();
+        for (const s2 of shrines) map.set(s2.id, s2);
+        for (const s2 of localRows) map.set(s2.id, s2);
+        pool = Array.from(map.values());
+      }
 
       // オンライン: 未保存の配布地域なら自動取得してから検索（利用者は意識しない）
       if (typeof navigator !== "undefined" && navigator.onLine && params.region && (params.page ?? 1) === 1) {
@@ -655,7 +695,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       if (typeof navigator !== "undefined" && navigator.onLine) {
         try {
           const covered = params.region
-            ? pool.filter((s) => s.region === params.region).length
+            ? pool.filter((s) => (s.region ?? (s as { region_id?: string }).region_id) === params.region).length
             : pool.filter((s) => !params.prefecture || s.prefecture === params.prefecture).length;
           if (covered < 30) {
             const remote = await backend.searchShrines({ ...params, page: 1, pageSize: 2000 });
@@ -668,8 +708,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         }
       }
 
-      const local = localShrines.length;
-      return searchInArray(pool, params, ctx, local ? "local" : "bundled");
+      return searchInArray(pool, params, ctx, localRows.length ? "local" : "bundled");
     },
     [backend, deities, benefits, regions, downloadRegion, allShrines, localShrines],
   );

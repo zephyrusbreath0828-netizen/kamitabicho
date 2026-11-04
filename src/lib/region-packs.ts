@@ -53,6 +53,11 @@ function hashId(region: string, prefecture: string, name: string): string {
 }
 
 /** JSON テキストを検証してパックへ変換する（管理画面・登録処理で共用） */
+const REGION_LABELS: Record<string, string> = {
+  hokkaido: "北海道", tohoku: "東北地方", kanto: "関東地方", chubu: "中部地方",
+  kinki: "近畿地方", chugoku: "中国地方", shikoku: "四国地方", kyushu: "九州・沖縄地方",
+};
+
 export function parsePack(text: string): RegionPack {
   let data: unknown;
   try {
@@ -60,7 +65,15 @@ export function parsePack(text: string): RegionPack {
   } catch {
     throw new PackError("JSON の形式が正しくありません。");
   }
-  const raw = data as Partial<RegionPack>;
+  // 配列形式（src/data/packs/*.json と同形式）にも対応する
+  const asArray = Array.isArray(data) ? (data as PackShrine[]) : null;
+  const raw = (asArray
+    ? {
+        region: (asArray[0] as PackShrine & { region?: string })?.region,
+        version: 1,
+        shrines: asArray,
+      }
+    : data) as Partial<RegionPack>;
   if (!raw || typeof raw !== "object") throw new PackError("JSON のルートがオブジェクトではありません。");
   if (!raw.region || typeof raw.region !== "string") throw new PackError("region がありません。");
   if (!/^[a-z0-9_-]{2,32}$/.test(raw.region)) throw new PackError("region は英小文字・数字・-・_ のみ使用できます。");
@@ -92,7 +105,7 @@ export function parsePack(text: string): RegionPack {
 
   return {
     region: raw.region,
-    name: raw.name,
+    name: raw.name ?? REGION_LABELS[raw.region] ?? raw.region,
     version: Number(raw.version ?? 1),
     shrine_count: shrines.length,
     updated_at: raw.updated_at ?? new Date().toISOString(),

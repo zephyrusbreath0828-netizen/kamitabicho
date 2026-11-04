@@ -11,6 +11,7 @@ import { useMemo } from "react";
 import CheckInPanel from "@/components/CheckInPanel";
 import FavoriteButton from "@/components/FavoriteButton";
 import ShrineMap from "@/components/ShrineMap";
+import { BENEFIT_BY_ID, DEITY_BY_ID } from "@/data/masters";
 import { useApp } from "@/lib/app-context";
 import { formatDateTime } from "@/lib/format";
 import { formatDistance } from "@/lib/geo";
@@ -41,6 +42,14 @@ export default function ShrineDetailPage() {
   const shrineGoshuin = goshuin.filter((g) => g.shrine_id === shrine.id);
   const searchUrl = `https://www.google.com/search?q=${encodeURIComponent(`${shrine.name} ${shrine.prefecture} 公式サイト`)}`;
 
+  // v2.0: 祭神・御利益は別マスタ（deities-<region>.json / benefits-<region>.json）を解決して表示
+  const deityNames = (shrine.deities ?? []).map((id) => DEITY_BY_ID.get(id)?.name ?? id.replace(/^d_/, ""));
+  const benefitNames = (shrine.benefits ?? []).map((id) => BENEFIT_BY_ID.get(id)?.name ?? id.replace(/^b_/, ""));
+  const deityText = deityNames.length ? deityNames.join("・") : (shrine.main_deity ?? "").trim();
+  const historyText = (shrine.description ?? "").trim();
+  const hasImage = Boolean((shrine.image_url ?? "").trim());
+  const notRegistered = <span className="text-sumi-mute">未登録</span>;
+
   const rows: Array<{ label: string; value: React.ReactNode }> = [
     { label: "所在地", value: `${shrine.prefecture}${shrine.address}` },
     {
@@ -65,8 +74,22 @@ export default function ShrineDetailPage() {
         </a>
       ),
     },
-    { label: "ご祭神", value: shrine.main_deity },
-    { label: "由緒", value: <span className="whitespace-pre-wrap">{shrine.description}</span> },
+    { label: "ご祭神", value: deityText ? deityText : notRegistered },
+    {
+      label: "御利益",
+      value: benefitNames.length ? (
+        <span className="flex flex-wrap gap-1.5">
+          {benefitNames.map((n) => (
+            <Link key={n} href={`/shrines?q=${encodeURIComponent(n)}`} className="chip chip-btn">
+              {n}
+            </Link>
+          ))}
+        </span>
+      ) : (
+        notRegistered
+      ),
+    },
+    { label: "由緒", value: historyText ? <span className="whitespace-pre-wrap">{historyText}</span> : notRegistered },
     {
       label: "参拝記録",
       value: (
@@ -82,11 +105,15 @@ export default function ShrineDetailPage() {
     <div>
       {/* ヒーロー */}
       <div className="relative h-[248px] w-full overflow-hidden bg-washi-deep">
-        <div
-          className="absolute inset-0 bg-cover bg-center"
-          style={{ backgroundImage: `url(${shrine.image_url})` }}
-          aria-hidden
-        />
+        {hasImage ? (
+          <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: `url(${shrine.image_url})` }} aria-hidden />
+        ) : (
+          <div className="absolute inset-0 bg-washi-deep" aria-hidden>
+            <div className="flex h-full w-full items-center justify-center">
+              <span className="font-mincho text-[0.8rem] tracking-[0.3em] text-sumi-mute">画像 未登録</span>
+            </div>
+          </div>
+        )}
         <div className="absolute inset-0 bg-gradient-to-t from-[#1c1713]/90 via-[#1c1713]/35 to-transparent" />
         <div className="absolute inset-x-0 top-0 flex items-center justify-between px-3 pt-safe">
           <Link
@@ -105,7 +132,9 @@ export default function ShrineDetailPage() {
           <h1 className="font-mincho text-[1.62rem] leading-tight font-semibold tracking-[0.08em] drop-shadow">
             {shrine.name}
           </h1>
-          <p className="mt-1 text-[0.78rem] text-white/80">ご祭神：{shrine.main_deity.split("・")[0]}</p>
+          <p className="mt-1 text-[0.78rem] text-white/80">
+            ご祭神：{deityText ? deityText.split("・")[0] : "未登録"}
+          </p>
         </div>
       </div>
 

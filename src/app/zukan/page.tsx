@@ -9,7 +9,7 @@ import { useApp } from "@/lib/app-context";
 import { formatDate } from "@/lib/format";
 
 export default function ZukanPage() {
-  const { benefitsCollection, deitiesCollection, benefits, deities } = useApp();
+  const { benefitsCollection, deitiesCollection, benefits, deities, shrines, visitedShrineIds } = useApp();
   const [tab, setTab] = useState<"benefits" | "deities">("benefits");
   const [query, setQuery] = useState("");
 
@@ -31,6 +31,21 @@ export default function ZukanPage() {
       });
   }, [tab, query, master, active.items]);
 
+  /** 祭神ごとの関連神社数・参拝済数（v2.0） */
+  const deityStats = useMemo(() => {
+    const visited = new Set(visitedShrineIds);
+    const m = new Map<string, { total: number; visited: number }>();
+    for (const s of shrines) {
+      for (const id of s.deities ?? []) {
+        const e = m.get(id) ?? { total: 0, visited: 0 };
+        e.total += 1;
+        if (visited.has(s.id)) e.visited += 1;
+        m.set(id, e);
+      }
+    }
+    return m;
+  }, [shrines, visitedShrineIds]);
+
   return (
     <div>
       <PageHeader title="図鑑" subtitle="参拝で集まる御利益と祭神" eyebrow="COLLECTION" />
@@ -40,7 +55,10 @@ export default function ZukanPage() {
           <ProgressRing value={active.rate} size={104} stroke={9} label="収集率" />
           <div className="min-w-0 flex-1">
             <p className="font-mincho text-[1.02rem] font-semibold">
-              {active.collected} / {active.total}
+              取得 {active.collected} / 未取得 {active.total - active.collected}
+            </p>
+            <p className="mt-0.5 text-[0.72rem] text-sumi-mute">
+              達成率 {active.rate}%（全 {active.total} 件）
             </p>
             <p className="mt-0.5 text-[0.76rem] leading-relaxed text-sumi-mute">
               {tab === "benefits"
@@ -98,6 +116,11 @@ export default function ZukanPage() {
                     <div className="min-w-0 flex-1">
                       <p className="font-mincho truncate text-[0.9rem] font-semibold">{item.name}</p>
                       {category && <p className="text-[0.66rem] text-kin">{category}</p>}
+                      {tab === "deities" && (
+                        <p className="text-[0.64rem] text-sumi-mute">
+                          関連 {deityStats.get(item.id)?.total ?? 0}社・参拝済 {deityStats.get(item.id)?.visited ?? 0}社
+                        </p>
+                      )}
                     </div>
                   </div>
                   <p className="mt-1.5 line-clamp-2 text-[0.7rem] leading-snug text-sumi-mute">

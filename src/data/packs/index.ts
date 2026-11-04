@@ -9,6 +9,11 @@ import shikokuJson from "./shikoku.json";
 import chugokuJson from "./chugoku.json";
 import kinkiJson from "./kinki.json";
 import chubuJson from "./chubu.json";
+import kyushuJson from "./kyushu.json";
+import deitiesShikoku from "./deities-shikoku.json";
+import benefitsShikoku from "./benefits-shikoku.json";
+import historyShikoku from "./history-shikoku.json";
+import { BENEFITS } from "@/data/masters";
 import type { ShrineV2 } from "@/lib/types";
 
 export type PackShrine = {
@@ -31,6 +36,7 @@ const RAW: Record<string, PackShrine[]> = {
   chugoku: chugokuJson as PackShrine[],
   kinki: kinkiJson as PackShrine[],
   chubu: chubuJson as PackShrine[],
+  kyushu: kyushuJson as PackShrine[],
 };
 
 /** パックが存在する地域ID */
@@ -42,7 +48,10 @@ export function hasPack(regionId: string): boolean {
 
 /** パックをアプリの神社型へ変換（未設定項目は空で埋める） */
 export function packShrines(regionId: string): ShrineV2[] {
-  const rows = RAW[regionId] ?? [];
+  return applySubMasters(packRows(RAW[regionId] ?? [], regionId));
+}
+
+function packRows(rows: PackShrine[], regionId: string): ShrineV2[] {
   return rows.map(
     (r) =>
       ({
@@ -58,13 +67,100 @@ export function packShrines(regionId: string): ShrineV2[] {
         image_url: "",
         visit_count: 0,
         city: r.city || "",
-        region: r.region,
+        region: r.region || regionId,
         deities: [],
         benefits: [],
         source: r.source,
         data_version: 1,
       }) as unknown as ShrineV2,
   );
+}
+
+/** 管理画面で登録したパック（JSON文字列）を神社配列へ変換 */
+export function packShrinesFromJson(json: string, regionId: string): ShrineV2[] {
+  const rows = JSON.parse(json) as PackShrine[];
+  return applySubMasters(packRows(rows, regionId));
+}
+
+/* ============================================================
+   v2.0 別マスタ（祭神 / 御利益 / 由緒）
+   ------------------------------------------------------------
+   神社データ（<region>.json）とは分離して管理する。
+   deities-<region>.json / benefits-<region>.json / history-<region>.json
+   を追加するだけで、他地方へ同じ仕組みを展開できる。
+   ============================================================ */
+
+type DeityRow = { shrine_id: string; deities: string[] };
+type BenefitRow = { shrine_id: string; benefits: string[] };
+type HistoryRow = { shrine_id: string; history: string };
+
+type SubMaster = {
+  deities: Map<string, string[]>;
+  benefits: Map<string, string[]>;
+  history: Map<string, string>;
+};
+
+const SUB_SOURCES: Record<string, { deities: DeityRow[]; benefits: BenefitRow[]; history: HistoryRow[] }> = {
+  shikoku: {
+    deities: deitiesShikoku as DeityRow[],
+    benefits: benefitsShikoku as BenefitRow[],
+    history: historyShikoku as HistoryRow[],
+  },
+};
+
+const BENEFIT_ID_BY_NAME = new Map(BENEFITS.map((b) => [b.name, b.id]));
+
+/** 御利益名 → 御利益ID（未登録名は b_<name> で自動採番） */
+export function benefitIdOfName(name: string): string {
+  return BENEFIT_ID_BY_NAME.get(name) ?? `b_${name}`;
+}
+
+/** 祭神名 → 祭神ID（deities.json と同じ d_<name> 規約） */
+export function deityIdOfName(name: string): string {
+  return `d_${name}`;
+}
+
+const SUB_MASTERS: Record<string, SubMaster> = Object.fromEntries(
+  Object.entries(SUB_SOURCES).map(([regionId, src]) => [
+    regionId,
+    {
+      deities: new Map(src.deities.map((r) => [r.shrine_id, r.deities])),
+      benefits: new Map(src.benefits.map((r) => [r.shrine_id, r.benefits])),
+      history: new Map(src.history.map((r) => [r.shrine_id, r.history])),
+    },
+  ]),
+);
+
+/** 別マスタを持つ地域ID */
+export const SUB_MASTER_REGIONS = Object.keys(SUB_MASTERS);
+
+/** 別マスタの登録件数（管理画面・説明用） */
+export function subMasterCounts(regionId: string) {
+  const s = SUB_MASTERS[regionId];
+  return s ? { deities: s.deities.size, benefits: s.benefits.size, history: s.history.size } : null;
+}
+
+/**
+ * 神社配列に別マスタ（祭神・御利益・由緒）を合成する。
+ * 既存フィールドは変更せず、該当行がある神社のみ追加する（追加方式）。
+ */
+export function applySubMasters<T extends ShrineV2>(shrines: T[]): T[] {
+  const sources = Object.values(SUB_MASTERS);
+  if (!sources.length) return shrines;
+  return shrines.map((s) => {
+    let next: T | null = null;
+    for (const sm of sources) {
+      const d = sm.deities.get(s.id);
+      const b = sm.benefits.get(s.id);
+      const h = sm.history.get(s.id);
+      if (!d && !b && !h) continue;
+      next = next ?? { ...s };
+      if (d) next.deities = d.map(deityIdOfName);
+      if (b) next.benefits = b.map(benefitIdOfName);
+      if (h) next.description = h;
+    }
+    return next ?? s;
+  });
 }
 
 export function packCount(regionId: string): number {
