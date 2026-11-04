@@ -1,8 +1,8 @@
 {
   "name": "kamitabicho",
-  "version": "1.4.0",
+  "version": "1.5.0",
   "private": true,
-  "description": "神旅帳 v1.4 - 全国の神社巡礼アプリ（PWA / Firebase）",
+  "description": "神旅帳 v1.5 - 全国の神社巡礼アプリ（PWA / Firebase）",
   "scripts": {
     "dev": "next dev -H 0.0.0.0 -p 3000",
     "build": "next build",
