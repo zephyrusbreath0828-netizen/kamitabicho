@@ -1146,5 +1146,75 @@
   "description": "酒造りの神。梅宮大社の祭神。",
   "imageUrl": null,
   "shrine_count": 0
+ },
+ {
+  "id": "d_熱田大神",
+  "name": "熱田大神",
+  "description": "草薙神剣（天叢雲剣）の神霊。熱田神宮の祭神で、国土守護の神。",
+  "imageUrl": null,
+  "shrine_count": 0
+ },
+ {
+  "id": "d_前田利家",
+  "name": "前田利家",
+  "description": "加賀藩の始祖。尾山神社の祭神。",
+  "imageUrl": null,
+  "shrine_count": 0
+ },
+ {
+  "id": "d_生島大神",
+  "name": "生島大神",
+  "description": "国土生成を司る神。生島足島神社の祭神。",
+  "imageUrl": null,
+  "shrine_count": 0
+ },
+ {
+  "id": "d_足島大神",
+  "name": "足島大神",
+  "description": "国土生成を司る神。生島足島神社の祭神。",
+  "imageUrl": null,
+  "shrine_count": 0
+ },
+ {
+  "id": "d_金山彦神",
+  "name": "金山彦神",
+  "description": "鉱山・金属の神。南宮大社の祭神。",
+  "imageUrl": null,
+  "shrine_count": 0
+ },
+ {
+  "id": "d_五十瓊敷入彦命",
+  "name": "五十瓊敷入彦命",
+  "description": "第11代垂仁天皇の皇子。伊奈波神社の祭神。",
+  "imageUrl": null,
+  "shrine_count": 0
+ },
+ {
+  "id": "d_御歳大神",
+  "name": "御歳大神",
+  "description": "五穀豊穣を司る神。水無神社の祭神。",
+  "imageUrl": null,
+  "shrine_count": 0
+ },
+ {
+  "id": "d_大県大神",
+  "name": "大県大神",
+  "description": "大荒田命。大縣神社の祭神。",
+  "imageUrl": null,
+  "shrine_count": 0
+ },
+ {
+  "id": "d_大巳貴命",
+  "name": "大巳貴命",
+  "description": "大国主命の別名。尾張大国霊神社の祭神。",
+  "imageUrl": null,
+  "shrine_count": 0
+ },
+ {
+  "id": "d_武田信玄",
+  "name": "武田信玄",
+  "description": "甲斐の戦国大名。武田神社の祭神。",
+  "imageUrl": null,
+  "shrine_count": 0
  }
 ]

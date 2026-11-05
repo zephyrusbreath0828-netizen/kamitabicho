@@ -106,5 +106,11 @@
   "name": "酒造安全",
   "category": "産業",
   "description": "酒造りの安全と繁栄の御利益。"
+ },
+ {
+  "id": "buyu",
+  "name": "武運長久",
+  "category": "守護",
+  "description": "武運・勝運・武勇の御利益。"
  }
 ]
