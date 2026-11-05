@@ -25,6 +25,9 @@ import historyChubu from "./history-chubu.json";
 import deitiesKanto from "./deities-kanto.json";
 import benefitsKanto from "./benefits-kanto.json";
 import historyKanto from "./history-kanto.json";
+import deitiesTohoku from "./deities-tohoku.json";
+import benefitsTohoku from "./benefits-tohoku.json";
+import historyTohoku from "./history-tohoku.json";
 import { BENEFITS } from "@/data/masters";
 import type { ShrineV2 } from "@/lib/types";
 
@@ -137,6 +140,11 @@ const SUB_SOURCES: Record<string, { deities: DeityRow[]; benefits: BenefitRow[];
     deities: deitiesKanto as DeityRow[],
     benefits: benefitsKanto as BenefitRow[],
     history: historyKanto as HistoryRow[],
+  },
+  tohoku: {
+    deities: deitiesTohoku as DeityRow[],
+    benefits: benefitsTohoku as BenefitRow[],
+    history: historyTohoku as HistoryRow[],
   },
 };
 

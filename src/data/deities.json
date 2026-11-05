@@ -1307,5 +1307,75 @@
   "description": "佐倉惣五郎。年貢減免を訴えた義民。",
   "imageUrl": null,
   "shrine_count": 0
+ },
+ {
+  "id": "d_志波彦大神",
+  "name": "志波彦大神",
+  "description": "陸奥の古社・志波彦神社の祭神。",
+  "imageUrl": null,
+  "shrine_count": 0
+ },
+ {
+  "id": "d_倉稲魂神",
+  "name": "倉稲魂神",
+  "description": "稲荷神の別名。五穀豊穣・商売繁盛の神。",
+  "imageUrl": null,
+  "shrine_count": 0
+ },
+ {
+  "id": "d_保食神",
+  "name": "保食神",
+  "description": "食物の神。五穀の起源を伝える。",
+  "imageUrl": null,
+  "shrine_count": 0
+ },
+ {
+  "id": "d_顕国玉神",
+  "name": "顕国玉神",
+  "description": "国土を司る神。岩木山神社の祭神。",
+  "imageUrl": null,
+  "shrine_count": 0
+ },
+ {
+  "id": "d_多都比姫神",
+  "name": "多都比姫神",
+  "description": "顕国玉神の妻神。岩木山神社の祭神。",
+  "imageUrl": null,
+  "shrine_count": 0
+ },
+ {
+  "id": "d_駒形大神",
+  "name": "駒形大神",
+  "description": "馬の神。陸中国一宮・駒形神社の祭神。",
+  "imageUrl": null,
+  "shrine_count": 0
+ },
+ {
+  "id": "d_大物忌大神",
+  "name": "大物忌大神",
+  "description": "鳥海山の神。出羽国一宮・大物忌神社の祭神。",
+  "imageUrl": null,
+  "shrine_count": 0
+ },
+ {
+  "id": "d_伊達政宗",
+  "name": "伊達政宗",
+  "description": "仙台藩初代藩主。青葉神社の祭神。",
+  "imageUrl": null,
+  "shrine_count": 0
+ },
+ {
+  "id": "d_阿弥陀如来",
+  "name": "阿弥陀如来",
+  "description": "西方極楽浄土の教主。定義如来の本尊。",
+  "imageUrl": null,
+  "shrine_count": 0
+ },
+ {
+  "id": "d_地蔵菩薩",
+  "name": "地蔵菩薩",
+  "description": "衆生を救う菩薩。恐山菩提寺の本尊。",
+  "imageUrl": null,
+  "shrine_count": 0
  }
 ]
