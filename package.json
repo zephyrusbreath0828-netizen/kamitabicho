@@ -1,8 +1,8 @@
 {
   "name": "kamitabicho",
-  "version": "1.9.0",
+  "version": "2.0.0",
   "private": true,
-  "description": "神旅帳 v1.9 - 全国の神社巡礼アプリ（PWA / Firebase）",
+  "description": "神旅帳 v2.0 - 全国の神社巡礼アプリ（PWA / Firebase）",
   "scripts": {
     "dev": "next dev -H 0.0.0.0 -p 3000",
     "build": "next build",
@@ -14,7 +14,7 @@
   },
   "dependencies": {
     "dexie": "^4.0.11",
-    "firebase": "^11.9.0",
+    "firebase": "^12.0.0",
     "next": "15.5.28",
     "react": "19.3.1",
     "react-dom": "19.3.1"
@@ -22,7 +22,7 @@
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.7",
     "@tailwindcss/postcss": "^4.3.3",
-    "@types/node": "^20.17.0",
+    "@types/node": "^22.0.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "eslint": "^9.39.5",
