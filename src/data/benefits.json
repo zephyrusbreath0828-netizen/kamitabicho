@@ -94,5 +94,17 @@
   "name": "国家安泰",
   "category": "国",
   "description": "国家の安泰・世の平和を願う御利益。"
+ },
+ {
+  "id": "supotsu",
+  "name": "スポーツ成就",
+  "category": "技芸",
+  "description": "勝運・武勇・競技の成就の御利益。"
+ },
+ {
+  "id": "shuzo",
+  "name": "酒造安全",
+  "category": "産業",
+  "description": "酒造りの安全と繁栄の御利益。"
  }
 ]

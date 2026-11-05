@@ -1069,5 +1069,82 @@
   "description": "直毘神の一柱。禍を直し福に転じる神。",
   "imageUrl": null,
   "shrine_count": 0
+ },
+ {
+  "id": "d_玉依媛命",
+  "name": "玉依媛命",
+  "description": "賀茂建角身命の娘。賀茂別雷神の母神。",
+  "imageUrl": null,
+  "shrine_count": 0
+ },
+ {
+  "id": "d_賀茂別雷神",
+  "name": "賀茂別雷神",
+  "description": "雷を司る神。上賀茂神社の祭神で、厄除けの信仰を集める。",
+  "imageUrl": null,
+  "shrine_count": 0
+ },
+ {
+  "id": "d_藤原鎌足",
+  "name": "藤原鎌足",
+  "description": "大化の改新の中心人物。藤原氏の祖。談山神社の祭神。",
+  "imageUrl": null,
+  "shrine_count": 0
+ },
+ {
+  "id": "d_蛭児大神",
+  "name": "蛭児大神",
+  "description": "えびす神。西宮神社の祭神で、商売繁盛の神。",
+  "imageUrl": null,
+  "shrine_count": 0
+ },
+ {
+  "id": "d_國懸神",
+  "name": "國懸神",
+  "description": "國懸神宮の祭神。",
+  "imageUrl": null,
+  "shrine_count": 0
+ },
+ {
+  "id": "d_月読尊",
+  "name": "月読尊",
+  "description": "月を司る神。伊弉諾尊の子。",
+  "imageUrl": null,
+  "shrine_count": 0
+ },
+ {
+  "id": "d_清原頼業",
+  "name": "清原頼業",
+  "description": "平安末期の儒学者。車折神社の祭神。",
+  "imageUrl": null,
+  "shrine_count": 0
+ },
+ {
+  "id": "d_今木神",
+  "name": "今木神",
+  "description": "平野神社の祭神。",
+  "imageUrl": null,
+  "shrine_count": 0
+ },
+ {
+  "id": "d_北畠親房",
+  "name": "北畠親房",
+  "description": "南北朝時代の公卿。南朝の忠臣。",
+  "imageUrl": null,
+  "shrine_count": 0
+ },
+ {
+  "id": "d_北畠顕家",
+  "name": "北畠顕家",
+  "description": "南北朝時代の武将。北畠親房の子。",
+  "imageUrl": null,
+  "shrine_count": 0
+ },
+ {
+  "id": "d_酒解神",
+  "name": "酒解神",
+  "description": "酒造りの神。梅宮大社の祭神。",
+  "imageUrl": null,
+  "shrine_count": 0
  }
 ]
