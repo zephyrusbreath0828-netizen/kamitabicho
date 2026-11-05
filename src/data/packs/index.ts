@@ -10,6 +10,9 @@ import chugokuJson from "./chugoku.json";
 import kinkiJson from "./kinki.json";
 import chubuJson from "./chubu.json";
 import kyushuJson from "./kyushu.json";
+import kantoJson from "./kanto.json";
+import tohokuJson from "./tohoku.json";
+import hokkaidoJson from "./hokkaido.json";
 import deitiesShikoku from "./deities-shikoku.json";
 import benefitsShikoku from "./benefits-shikoku.json";
 import historyShikoku from "./history-shikoku.json";
@@ -58,6 +61,9 @@ const RAW: Record<string, PackShrine[]> = {
   kinki: kinkiJson as PackShrine[],
   chubu: chubuJson as PackShrine[],
   kyushu: kyushuJson as PackShrine[],
+  kanto: kantoJson as PackShrine[],
+  tohoku: tohokuJson as PackShrine[],
+  hokkaido: hokkaidoJson as PackShrine[],
 };
 
 /** パックが存在する地域ID */

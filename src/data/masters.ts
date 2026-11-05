@@ -1607,10 +1607,10 @@ export const REGIONS: Region[] = [
     "prefectures": [
       "北海道"
     ],
-    "shrine_count": 0,
+    "shrine_count": 835,
     "updated_at": "2026-11-01T00:00:00.000Z",
     "version": 1,
-    "release": "preparing",
+    "release": "available",
     "download_size": 0
   },
   {
@@ -1625,10 +1625,10 @@ export const REGIONS: Region[] = [
       "山形県",
       "福島県"
     ],
-    "shrine_count": 0,
+    "shrine_count": 2684,
     "updated_at": "2026-11-01T00:00:00.000Z",
     "version": 1,
-    "release": "preparing",
+    "release": "available",
     "download_size": 0
   },
   {
@@ -1644,10 +1644,10 @@ export const REGIONS: Region[] = [
       "東京都",
       "神奈川県"
     ],
-    "shrine_count": 0,
+    "shrine_count": 4674,
     "updated_at": "2026-11-01T00:00:00.000Z",
     "version": 1,
-    "release": "preparing",
+    "release": "available",
     "download_size": 0
   },
   {
