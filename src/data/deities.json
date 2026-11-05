@@ -1216,5 +1216,96 @@
   "description": "甲斐の戦国大名。武田神社の祭神。",
   "imageUrl": null,
   "shrine_count": 0
+ },
+ {
+  "id": "d_明治天皇",
+  "name": "明治天皇",
+  "description": "第122代天皇。明治維新を断行し、近代日本の基礎を築いた。明治神宮の祭神。",
+  "imageUrl": null,
+  "shrine_count": 0
+ },
+ {
+  "id": "d_味耜高彦根命",
+  "name": "味耜高彦根命",
+  "description": "大国主神の子神。雷・剣の神。",
+  "imageUrl": null,
+  "shrine_count": 0
+ },
+ {
+  "id": "d_二荒山大神",
+  "name": "二荒山大神",
+  "description": "日光山の神。勝道上人が開山した日光の地主神。",
+  "imageUrl": null,
+  "shrine_count": 0
+ },
+ {
+  "id": "d_豊城入彦命",
+  "name": "豊城入彦命",
+  "description": "第10代崇神天皇の皇子。東国経営を担った。宇都宮二荒山神社の祭神。",
+  "imageUrl": null,
+  "shrine_count": 0
+ },
+ {
+  "id": "d_火雷神",
+  "name": "火雷神",
+  "description": "雷を司る神。榛名神社の祭神。",
+  "imageUrl": null,
+  "shrine_count": 0
+ },
+ {
+  "id": "d_赤城大神",
+  "name": "赤城大神",
+  "description": "赤城山の神。赤城神社の祭神。",
+  "imageUrl": null,
+  "shrine_count": 0
+ },
+ {
+  "id": "d_久那斗神",
+  "name": "久那斗神",
+  "description": "道の神。息栖神社の祭神。",
+  "imageUrl": null,
+  "shrine_count": 0
+ },
+ {
+  "id": "d_妙見尊星王",
+  "name": "妙見尊星王",
+  "description": "北極星・北斗七星を神格化した神。千葉神社の祭神。",
+  "imageUrl": null,
+  "shrine_count": 0
+ },
+ {
+  "id": "d_不動明王",
+  "name": "不動明王",
+  "description": "仏教の守護神。成田山新勝寺の本尊。",
+  "imageUrl": null,
+  "shrine_count": 0
+ },
+ {
+  "id": "d_帝釈天",
+  "name": "帝釈天",
+  "description": "仏教の守護神。柴又帝釈天の本尊。",
+  "imageUrl": null,
+  "shrine_count": 0
+ },
+ {
+  "id": "d_弘法大師",
+  "name": "弘法大師",
+  "description": "空海。真言宗の開祖。川崎大師の本尊。",
+  "imageUrl": null,
+  "shrine_count": 0
+ },
+ {
+  "id": "d_護国の英霊",
+  "name": "護国の英霊",
+  "description": "国難に殉じた人々の霊。靖国神社の祭神。",
+  "imageUrl": null,
+  "shrine_count": 0
+ },
+ {
+  "id": "d_宗吾",
+  "name": "宗吾",
+  "description": "佐倉惣五郎。年貢減免を訴えた義民。",
+  "imageUrl": null,
+  "shrine_count": 0
  }
 ]
