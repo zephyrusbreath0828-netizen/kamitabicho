@@ -11,7 +11,6 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import ChunkReloadGuard from "@/components/ChunkReloadGuard";
 import InstallPrompt from "@/components/InstallPrompt";
 import ServiceWorkerRegister from "@/components/ServiceWorkerRegister";
 import { useApp } from "@/lib/app-context";
@@ -140,7 +139,6 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="mx-auto flex min-h-dvh w-full max-w-[560px] flex-col">
       <ServiceWorkerRegister />
-      <ChunkReloadGuard />
       <div className="print:hidden">
         {!online && (
           <div

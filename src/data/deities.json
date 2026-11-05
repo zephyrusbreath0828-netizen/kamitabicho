@@ -1377,5 +1377,12 @@
   "description": "衆生を救う菩薩。恐山菩提寺の本尊。",
   "imageUrl": null,
   "shrine_count": 0
+ },
+ {
+  "id": "d_松前泰広",
+  "name": "松前泰広",
+  "description": "松前藩の祖。松前神社の祭神。",
+  "imageUrl": null,
+  "shrine_count": 0
  }
 ]
