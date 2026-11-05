@@ -1041,5 +1041,33 @@
   "description": "山の神。三島神社・大山祇神社に祀られ、海上安全・五穀豊穣の神。",
   "imageUrl": null,
   "shrine_count": 0
+ },
+ {
+  "id": "d_武内宿禰",
+  "name": "武内宿禰",
+  "description": "第12代景行天皇から第16代仁徳天皇まで五代の天皇に仕えた忠臣。長寿の神として信仰される。",
+  "imageUrl": null,
+  "shrine_count": 0
+ },
+ {
+  "id": "d_稲田比売命",
+  "name": "稲田比売命",
+  "description": "素盞嗚尊の妻神。八岐大蛇退治の後に夫婦となった。縁結び・家内安全の神。",
+  "imageUrl": null,
+  "shrine_count": 0
+ },
+ {
+  "id": "d_徳川家康",
+  "name": "徳川家康",
+  "description": "江戸幕府初代将軍。東照宮の祭神として国家安泰・開運の神とされる。",
+  "imageUrl": null,
+  "shrine_count": 0
+ },
+ {
+  "id": "d_神直日神",
+  "name": "神直日神",
+  "description": "直毘神の一柱。禍を直し福に転じる神。",
+  "imageUrl": null,
+  "shrine_count": 0
  }
 ]
