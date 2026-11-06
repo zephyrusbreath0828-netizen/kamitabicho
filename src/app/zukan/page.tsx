@@ -46,6 +46,20 @@ export default function ZukanPage() {
     return m;
   }, [shrines, visitedShrineIds]);
 
+  /** カテゴリ別の取得状況（v2.8） */
+  const categoryStats = useMemo(() => {
+    if (tab !== "benefits") return [];
+    const m = new Map<string, { total: number; got: number }>();
+    for (const item of items) {
+      const cat = "category" in item ? String(item.category) : "その他";
+      const e = m.get(cat) ?? { total: 0, got: 0 };
+      e.total += 1;
+      if (item.obtainedAt) e.got += 1;
+      m.set(cat, e);
+    }
+    return Array.from(m.entries()).map(([category, v]) => ({ category, ...v }));
+  }, [items, tab]);
+
   return (
     <div>
       <PageHeader title="図鑑" subtitle="参拝で集まる御利益と祭神" eyebrow="COLLECTION" />
@@ -82,6 +96,22 @@ export default function ZukanPage() {
             </div>
           </div>
         </section>
+
+        {tab === "benefits" && categoryStats.length > 0 && (
+          <section className="wa-card p-3">
+            <p className="font-mincho mb-2 text-[0.8rem] font-semibold">カテゴリ別の収集状況</p>
+            <div className="grid grid-cols-2 gap-x-4 gap-y-1.5">
+              {categoryStats.map((c) => (
+                <div key={c.category} className="flex items-baseline justify-between gap-2">
+                  <span className="text-[0.7rem] text-sumi-mute">{c.category}</span>
+                  <span className="font-mono text-[0.68rem] text-ink/70">
+                    {c.got}/{c.total}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
 
         <input
           className="field"
