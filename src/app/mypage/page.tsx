@@ -294,7 +294,7 @@ export default function MyPage() {
           </span>
         </Link>
 
-        <p className="pb-2 text-center text-[0.66rem] text-sumi-mute">神旅帳 v2.0</p>
+        <p className="pb-2 text-center text-[0.66rem] text-sumi-mute">神旅帳 v2.6.1</p>
       </div>
     </div>
   );

@@ -10,6 +10,9 @@ import chugokuJson from "./chugoku.json";
 import kinkiJson from "./kinki.json";
 import chubuJson from "./chubu.json";
 import kyushuJson from "./kyushu.json";
+import kantoJson from "./kanto.json";
+import tohokuJson from "./tohoku.json";
+import hokkaidoJson from "./hokkaido.json";
 import deitiesShikoku from "./deities-shikoku.json";
 import benefitsShikoku from "./benefits-shikoku.json";
 import historyShikoku from "./history-shikoku.json";
@@ -22,15 +25,9 @@ import historyKinki from "./history-kinki.json";
 import deitiesChubu from "./deities-chubu.json";
 import benefitsChubu from "./benefits-chubu.json";
 import historyChubu from "./history-chubu.json";
-import deitiesKanto from "./deities-kanto.json";
-import benefitsKanto from "./benefits-kanto.json";
-import historyKanto from "./history-kanto.json";
-import deitiesTohoku from "./deities-tohoku.json";
-import benefitsTohoku from "./benefits-tohoku.json";
-import historyTohoku from "./history-tohoku.json";
-import deitiesHokkaido from "./deities-hokkaido.json";
-import benefitsHokkaido from "./benefits-hokkaido.json";
-import historyHokkaido from "./history-hokkaido.json";
+import deitiesKyushu from "./deities-kyushu.json";
+import benefitsKyushu from "./benefits-kyushu.json";
+import historyKyushu from "./history-kyushu.json";
 import { BENEFITS } from "@/data/masters";
 import type { ShrineV2 } from "@/lib/types";
 
@@ -55,6 +52,9 @@ const RAW: Record<string, PackShrine[]> = {
   kinki: kinkiJson as PackShrine[],
   chubu: chubuJson as PackShrine[],
   kyushu: kyushuJson as PackShrine[],
+  kanto: kantoJson as PackShrine[],
+  tohoku: tohokuJson as PackShrine[],
+  hokkaido: hokkaidoJson as PackShrine[],
 };
 
 /** パックが存在する地域ID */
@@ -139,20 +139,10 @@ const SUB_SOURCES: Record<string, { deities: DeityRow[]; benefits: BenefitRow[];
     benefits: benefitsChubu as BenefitRow[],
     history: historyChubu as HistoryRow[],
   },
-  kanto: {
-    deities: deitiesKanto as DeityRow[],
-    benefits: benefitsKanto as BenefitRow[],
-    history: historyKanto as HistoryRow[],
-  },
-  tohoku: {
-    deities: deitiesTohoku as DeityRow[],
-    benefits: benefitsTohoku as BenefitRow[],
-    history: historyTohoku as HistoryRow[],
-  },
-  hokkaido: {
-    deities: deitiesHokkaido as DeityRow[],
-    benefits: benefitsHokkaido as BenefitRow[],
-    history: historyHokkaido as HistoryRow[],
+  kyushu: {
+    deities: deitiesKyushu as DeityRow[],
+    benefits: benefitsKyushu as BenefitRow[],
+    history: historyKyushu as HistoryRow[],
   },
 };
 
