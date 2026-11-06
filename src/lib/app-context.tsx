@@ -42,7 +42,7 @@ import {
   touchLastSync,
 } from "@/lib/local-db";
 import { searchInArray } from "@/lib/search";
-import { hasRegionUpdate, nearestPrefecture } from "@/lib/regions";
+import { hasRegionUpdate, nearestPrefecture } from "@/data/masters";
 import { applySubMasters, packShrines, packShrinesFromJson, packCount, withPackCounts } from "@/data/packs";
 import { listLocalPacks } from "@/lib/region-packs";
 type MigrationReport = { from: number; to: number; skipped: boolean; legacyVisits: number; points: number; benefits: number; deities: number; errors: string[] };

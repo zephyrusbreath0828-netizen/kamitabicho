@@ -39,7 +39,7 @@ import { SHRINES_V2, DEITIES, BENEFITS, REGIONS } from "@/data/masters";
 import { searchInArray } from "@/lib/search";
 import { COLLECTIONS, getDb, getFbAuth } from "@/lib/firebase";
 import { deterministicId, isLocallyMigrated, markLocallyMigrated } from "@/lib/legacy";
-import { dataUrlToFile } from "@/lib/photo";
+import { dataUrlToFile } from "@/lib/cloudinary";
 import { uploadToCloudinary } from "@/lib/cloudinary";
 import type {
   Backend,

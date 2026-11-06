@@ -5,7 +5,7 @@
  * Firestore に同じ ID のドキュメントがあれば、そちらの値で上書き（マージ）する。
  */
 import shrinesJson from "./shrines.v2.json";
-import type { Benefit, Deity, Region, ShrineV2 } from "@/lib/types";
+import type { Benefit, Deity, Region, RegionId, ShrineV2 } from "@/lib/types";
 
 export const SHRINES_V2 = shrinesJson as ShrineV2[];
 
@@ -1766,4 +1766,65 @@ export function regionOfPrefecture(prefecture: string): Region["id"] {
 /** JSON に無い地方IDへのフォールバック（将来の地域追加に備える） */
 export function regionName(id: string): string {
   return REGION_BY_ID.get(id as Region["id"])?.name ?? id;
+}
+
+/* ============================================================
+   地方・都道府県ユーティリティ（旧 lib/regions.ts）
+   ============================================================ */
+/**
+ * 地方・都道府県ユーティリティ（v1.2）
+ * 既存の PREFECTURES（src/data/shrines.ts）はそのまま利用できる。
+ */
+
+/** 八地方区分（仕様の並び順） */
+export const REGION_LIST = [...REGIONS].sort((a, b) => a.order - b.order);
+
+/** 地域IDから名前 */
+export function regionLabel(id: RegionId | string | undefined): string {
+  if (!id) return "全国";
+  return REGION_LIST.find((r) => r.id === id)?.name ?? String(id);
+}
+
+/** 都道府県が属する地方 */
+export function regionForPrefecture(prefecture: string): RegionId {
+  return regionOfPrefecture(prefecture);
+}
+
+/** 配布中か（準備中の地域はダウンロード不可） */
+export function isRegionAvailable(region: { release?: string } | undefined): boolean {
+  return region?.release !== "preparing";
+}
+
+/** 保存済みデータに更新があるか */
+export function hasRegionUpdate(
+  master: { version?: number } | undefined,
+  saved: { version?: number } | undefined,
+): boolean {
+  return Boolean(master) && (master?.version ?? 1) > (saved?.version ?? 0);
+}
+
+/** 表示用の件数フォーマット（4,200件） */
+export function formatCount(n: number): string {
+  return `${n.toLocaleString("ja-JP")}件`;
+}
+
+/**
+ * 現在地から都道府県を推定する（外部APIを使わない方式）
+ *
+ * 保存済み・同梱の神社データのうち最も近いものの都道府県を採用する。
+ * 県境付近では誤差が出るため、UI 側で「変更できます」と明示する。
+ */
+export function nearestPrefecture(
+  position: { latitude: number; longitude: number },
+  shrines: Array<{ prefecture: string; latitude: number; longitude: number }>,
+): string | null {
+  let best: { pref: string; d: number } | null = null;
+  for (const s of shrines) {
+    // 緯度経度の平面近似（数百kmスケールの比較には十分）
+    const dy = (s.latitude - position.latitude) * 111;
+    const dx = (s.longitude - position.longitude) * 111 * Math.cos((position.latitude * Math.PI) / 180);
+    const d = Math.hypot(dx, dy);
+    if (!best || d < best.d) best = { pref: s.prefecture, d };
+  }
+  return best?.pref ?? null;
 }

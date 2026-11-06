@@ -15,7 +15,7 @@ import PageHeader from "@/components/PageHeader";
 import { useApp } from "@/lib/app-context";
 import { formatDateTime } from "@/lib/format";
 import { readRegionStates, type SavedRegionState } from "@/lib/local-db";
-import { REGION_LIST, regionLabel } from "@/lib/regions";
+import { REGION_LIST, regionLabel } from "@/data/masters";
 import { packCount } from "@/data/packs";
 import type { RegionId } from "@/lib/types";
 

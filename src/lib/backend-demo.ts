@@ -12,9 +12,9 @@
  */
 import { SHRINES_V2, DEITIES, BENEFITS, REGIONS } from "@/data/masters";
 import { searchInArray } from "@/lib/search";
-import { devToolsEnabled } from "@/lib/dev-tools";
+import { devToolsEnabled } from "@/lib/firebase";
 import { normalizeGoshuin, normalizeVisit } from "@/lib/legacy";
-import { fileToDataUrl } from "@/lib/photo";
+import { fileToDataUrl } from "@/lib/cloudinary";
 import type {
   Backend,
   BackendMode,

@@ -7,7 +7,7 @@ import PageHeader from "@/components/PageHeader";
 import { useApp } from "@/lib/app-context";
 import { toUserMessage } from "@/lib/errors";
 import { toDateInputValue } from "@/lib/format";
-import { validateImage } from "@/lib/photo";
+import { validateImage } from "@/lib/cloudinary";
 
 export default function NewGoshuinPage() {
   const { shrines, shrineById, registerGoshuin, visits } = useApp();

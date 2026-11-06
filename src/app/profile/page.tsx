@@ -8,7 +8,7 @@ import { useApp } from "@/lib/app-context";
 import { toUserMessage } from "@/lib/errors";
 import { isFirebaseConfigured } from "@/lib/firebase";
 import { formatDate } from "@/lib/format";
-import { validateImage } from "@/lib/photo";
+import { validateImage } from "@/lib/cloudinary";
 
 const MAX_NICKNAME = 24;
 
@@ -189,7 +189,7 @@ export default function ProfilePage() {
           <dl className="mt-2 space-y-1 text-[0.76rem] text-sumi-soft">
             <div className="flex justify-between">
               <dt className="text-sumi-mute">バージョン</dt>
-              <dd>2.6.1</dd>
+              <dd>2.7.0</dd>
             </div>
             <div className="flex justify-between">
               <dt className="text-sumi-mute">接続状態</dt>

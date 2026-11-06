@@ -6,7 +6,7 @@
  */
 import { useMemo, useState } from "react";
 import { useApp } from "@/lib/app-context";
-import { devToolsEnabled } from "@/lib/dev-tools";
+import { devToolsEnabled } from "@/lib/firebase";
 import { toUserMessage } from "@/lib/errors";
 import { CHECKIN_RADIUS_M, distanceMeters, formatDistance, isWithinCheckinRadius } from "@/lib/geo";
 import type { Shrine } from "@/lib/types";

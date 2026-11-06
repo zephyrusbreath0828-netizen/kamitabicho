@@ -11,9 +11,9 @@ import ShrineCard from "@/components/ShrineCard";
 import ShrineMap, { type MapMarker } from "@/components/ShrineMap";
 import { EmptyState, SectionTitle } from "@/components/ui";
 import { useApp } from "@/lib/app-context";
-import { devToolsEnabled } from "@/lib/dev-tools";
+import { devToolsEnabled } from "@/lib/firebase";
 import { CHECKIN_RADIUS_M, distanceMeters, formatDistance, formatLatLng } from "@/lib/geo";
-import { nearestPrefecture, regionLabel } from "@/lib/regions";
+import { nearestPrefecture, regionLabel } from "@/data/masters";
 import { formatRelative } from "@/lib/format";
 import { usePosition, useTestPosition } from "@/lib/use-position";
 

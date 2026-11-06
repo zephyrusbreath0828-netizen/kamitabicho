@@ -11,7 +11,7 @@ import ShrineMap from "@/components/ShrineMap";
 import { EmptyState } from "@/components/ui";
 import { useApp } from "@/lib/app-context";
 import { distanceMeters } from "@/lib/geo";
-import { REGION_LIST, regionLabel } from "@/lib/regions";
+import { REGION_LIST, regionLabel } from "@/data/masters";
 import type { RegionId, ShrineSearchResult, ShrineV2 } from "@/lib/types";
 import { usePosition } from "@/lib/use-position";
 
