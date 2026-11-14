@@ -112,7 +112,8 @@ export default function ProfilePage() {
               {busy === "photo" ? "更新中…" : "画像を変更"}
             </button>
             <p className="mt-1 text-[0.7rem] leading-snug text-sumi-mute">
-              JPEG / PNG・8MBまで。Firebase Storage の本人フォルダに保存されます。
+              JPEG / PNG・8MBまで。アップロード時に自動で最適化されます（長辺400px・写真は本人のみ閲覧可）。
+              <Link href="/help/photos" className="ml-1 underline">写真圧縮について</Link>
             </p>
           </div>
         </section>
@@ -189,7 +190,7 @@ export default function ProfilePage() {
           <dl className="mt-2 space-y-1 text-[0.76rem] text-sumi-soft">
             <div className="flex justify-between">
               <dt className="text-sumi-mute">バージョン</dt>
-              <dd>2.10.0</dd>
+              <dd>2.11.0</dd>
             </div>
             <div className="flex justify-between">
               <dt className="text-sumi-mute">接続状態</dt>

@@ -95,12 +95,179 @@ export function mapCloudinaryError(status: number, body: unknown): ImageUploadEr
   );
 }
 
+
+/* ============================================================
+   画像の自動圧縮（v2.11）
+   ------------------------------------------------------------
+   - 長辺 1600px へ縮小（アスペクト比維持）
+   - JPEG 品質 85%
+   - EXIF は canvas 再エンコード時に自動的に破棄される（位置情報も残らない）
+   - 1枚 500KB 以下を目標に、品質→寸法の順で段階的に追い込む
+   - 画質優先: 目標に届かない場合は品質 0.7 を下限に留める
+   ============================================================ */
+
+/** 長辺の上限（px） */
+export const COMPRESS_MAX_EDGE = 1600;
+/** JPEG 品質（0-1） */
+export const COMPRESS_QUALITY = 0.85;
+/** 1枚あたりの目標サイズ（500KB） */
+export const COMPRESS_TARGET_BYTES = 500 * 1024;
+
+export type CompressedImage = {
+  /** Cloudinary へ送る実体（JPEG） */
+  file: File;
+  /** 圧縮後プレビュー用の object URL（不要になったら revoke する） */
+  previewUrl: string;
+  originalBytes: number;
+  compressedBytes: number;
+  width: number;
+  height: number;
+};
+
+/** バイト数を読みやすく整形する（5.2MB / 380KB） */
+export function formatBytes(bytes: number): string {
+  if (!Number.isFinite(bytes) || bytes <= 0) return "0KB";
+  if (bytes >= 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)}MB`;
+  return `${Math.round(bytes / 1024)}KB`;
+}
+
+type SourceImage = {
+  width: number;
+  height: number;
+  draw: (ctx: CanvasRenderingContext2D, w: number, h: number) => void;
+  dispose: () => void;
+};
+
+/** 画像をデコードする（EXIF の向きを反映しつつ読み込む） */
+async function decode(file: File): Promise<SourceImage> {
+  // createImageBitmap は EXIF の Orientation を反映できる（対応ブラウザ）
+  if (typeof createImageBitmap === "function") {
+    try {
+      const bitmap = await createImageBitmap(file, { imageOrientation: "from-image" });
+      return {
+        width: bitmap.width,
+        height: bitmap.height,
+        draw: (ctx, w, h) => ctx.drawImage(bitmap, 0, 0, w, h),
+        dispose: () => bitmap.close(),
+      };
+    } catch {
+      /* 未対応形式は Image 要素へフォールバック */
+    }
+  }
+  const url = URL.createObjectURL(file);
+  try {
+    const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+      const el = new Image();
+      el.onload = () => resolve(el);
+      el.onerror = () => reject(new Error("画像の読み込みに失敗しました。"));
+      el.src = url;
+    });
+    return {
+      width: img.naturalWidth,
+      height: img.naturalHeight,
+      draw: (ctx, w, h) => ctx.drawImage(img, 0, 0, w, h),
+      dispose: () => URL.revokeObjectURL(url),
+    };
+  } catch (e) {
+    URL.revokeObjectURL(url);
+    throw e;
+  }
+}
+
+function toBlob(canvas: HTMLCanvasElement, quality: number): Promise<Blob | null> {
+  return new Promise((resolve) => canvas.toBlob((b) => resolve(b), "image/jpeg", quality));
+}
+
+/**
+ * 画像を自動圧縮する。
+ * 失敗した場合は元の File をそのまま返す（アップロード自体は継続させる）。
+ */
+export async function compressImage(
+  file: File,
+  options: { maxEdge?: number; quality?: number; targetBytes?: number } = {},
+): Promise<CompressedImage> {
+  const maxEdge = options.maxEdge ?? COMPRESS_MAX_EDGE;
+  const targetBytes = options.targetBytes ?? COMPRESS_TARGET_BYTES;
+  const fallback = (): CompressedImage => ({
+    file,
+    previewUrl: URL.createObjectURL(file),
+    originalBytes: file.size,
+    compressedBytes: file.size,
+    width: 0,
+    height: 0,
+  });
+
+  let src: SourceImage;
+  try {
+    src = await decode(file);
+  } catch {
+    return fallback();
+  }
+
+  try {
+    // 長辺を maxEdge に収める（拡大はしない）
+    const scale = Math.min(1, maxEdge / Math.max(src.width, src.height));
+    let width = Math.max(1, Math.round(src.width * scale));
+    let height = Math.max(1, Math.round(src.height * scale));
+
+    let quality = options.quality ?? COMPRESS_QUALITY;
+    let blob: Blob | null = null;
+
+    for (let attempt = 0; attempt < 6; attempt += 1) {
+      const canvas = document.createElement("canvas");
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return fallback();
+      ctx.fillStyle = "#ffffff"; // 透過 PNG を JPEG 化したときの黒潰れ防止
+      ctx.fillRect(0, 0, width, height);
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = "high";
+      src.draw(ctx, width, height);
+
+      blob = await toBlob(canvas, quality);
+      if (!blob) return fallback();
+      if (blob.size <= targetBytes) break;
+
+      // 品質を下げる（0.7 を下限に、画質の劣化を抑える）
+      if (quality > 0.7) {
+        quality = Math.max(0.7, Number((quality - 0.07).toFixed(2)));
+        continue;
+      }
+      // 品質の下限に達したら寸法を 85% ずつ縮める
+      width = Math.max(1, Math.round(width * 0.85));
+      height = Math.max(1, Math.round(height * 0.85));
+    }
+
+    if (!blob) return fallback();
+
+    // 圧縮しても小さくならない場合は元画像を尊重（画質を落とさない）
+    if (blob.size >= file.size && scale === 1) {
+      return fallback();
+    }
+
+    const name = (file.name || "photo").replace(/\.[^.]+$/, "") + ".jpg";
+    const out = new File([blob], name, { type: "image/jpeg" });
+    return {
+      file: out,
+      previewUrl: URL.createObjectURL(blob),
+      originalBytes: file.size,
+      compressedBytes: blob.size,
+      width,
+      height,
+    };
+  } catch {
+    return fallback();
+  } finally {
+    src.dispose();
+  }
+}
+
 /** File を Cloudinary へ送れる Blob に変換する（送信量を抑えるため縮小する） */
 async function prepareBlob(file: File, maxSize: number, quality: number): Promise<Blob> {
   try {
-    const dataUrl = await fileToDataUrl(file, maxSize, quality);
-    const res = await fetch(dataUrl);
-    return await res.blob();
+    const out = await compressImage(file, { maxEdge: maxSize, quality });
+    return out.file;
   } catch {
     // 縮小に失敗してもアップロード自体は試す
     return file;
@@ -116,6 +283,17 @@ export async function uploadToCloudinary(
   kind: UploadKind,
   uid: string,
 ): Promise<string> {
+  const { url } = await uploadToCloudinaryDetailed(file, kind, uid);
+  return url;
+}
+
+/** 圧縮結果つきのアップロード（画面で削減量を表示する用） */
+export async function uploadToCloudinaryDetailed(
+  file: File,
+  kind: UploadKind,
+  uid: string,
+  preset?: CompressedImage,
+): Promise<{ url: string; compressed: CompressedImage | null }> {
   if (!isCloudinaryConfigured) {
     throw mapCloudinaryError(0, null);
   }
@@ -125,7 +303,8 @@ export async function uploadToCloudinary(
   const config = KIND_CONFIG[kind];
   // uid をフォルダに含めて所有者を判別できるようにする（推測困難な連番ではない）
   const folder = [BASE_FOLDER, config.folder, uid].filter(Boolean).join("/");
-  const blob = await prepareBlob(file, config.maxSize, config.quality);
+  const compressed = preset ?? (await compressImage(file, { maxEdge: config.maxSize, quality: config.quality }));
+  const blob = compressed.file;
 
   const form = new FormData();
   form.append("file", blob, file.name || `${kind}.jpg`);
@@ -155,7 +334,7 @@ export async function uploadToCloudinary(
         "cloudinary/no-url",
       );
     }
-    return url;
+    return { url, compressed };
   } catch (e) {
     if (e instanceof ImageUploadError) throw e;
     if ((e as Error)?.name === "AbortError") {

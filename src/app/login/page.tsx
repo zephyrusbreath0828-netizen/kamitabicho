@@ -3,7 +3,7 @@
 /**
  * ログイン画面
  *
- * v2.10.0 の修正点:
+ * v2.11.0 の修正点:
  *  - この画面からは遷移しない（遷移は AppShell 内の AuthGate が一元管理）
  *    v1.0 はログイン画面とシェルの双方が router.replace を呼び、遷移が競合していた。
  *  - デモログインは「セッション確定 → 画面更新 → データ保存」の順で行うため、
@@ -116,7 +116,7 @@ export default function LoginPage() {
           <br />
           位置情報は参拝記録の登録判定にのみ使用します。
         </p>
-        <p className="mt-2 pb-4 text-center text-[0.66rem] text-sumi-mute">神旅帳 v2.10.0</p>
+        <p className="mt-2 pb-4 text-center text-[0.66rem] text-sumi-mute">神旅帳 v2.11.0</p>
       </div>
     </div>
   );

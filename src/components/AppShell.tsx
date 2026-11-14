@@ -11,8 +11,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import InstallPrompt from "@/components/InstallPrompt";
-import ServiceWorkerRegister from "@/components/ServiceWorkerRegister";
+import InstallPrompt, { ServiceWorkerRegister } from "@/components/InstallPrompt";
 import { useApp } from "@/lib/app-context";
 
 const NAV = [

@@ -7,7 +7,8 @@ import PageHeader from "@/components/PageHeader";
 import { useApp } from "@/lib/app-context";
 import { toUserMessage } from "@/lib/errors";
 import { toDateInputValue } from "@/lib/format";
-import { validateImage } from "@/lib/cloudinary";
+import Link from "next/link";
+import { compressImage, formatBytes, type CompressedImage, validateImage } from "@/lib/cloudinary";
 
 export default function NewGoshuinPage() {
   const { shrines, shrineById, registerGoshuin, visits } = useApp();
@@ -18,6 +19,8 @@ export default function NewGoshuinPage() {
   const [memo, setMemo] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
+  const [compressed, setCompressed] = useState<CompressedImage | null>(null);
+  const [compressing, setCompressing] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -39,11 +42,19 @@ export default function NewGoshuinPage() {
     });
   }, [shrines, visits]);
 
-  const onPick = (f: File | null) => {
+  const resetPhoto = () => {
+    if (compressed) URL.revokeObjectURL(compressed.previewUrl);
+    setFile(null);
+    setPreview(null);
+    setCompressed(null);
+    setCompressing(false);
+  };
+
+  /** 選択直後に自動圧縮し、圧縮後プレビューと削減量を表示する（v2.11） */
+  const onPick = async (f: File | null) => {
     setError(null);
     if (!f) {
-      setFile(null);
-      setPreview(null);
+      resetPhoto();
       return;
     }
     const message = validateImage(f);
@@ -51,10 +62,23 @@ export default function NewGoshuinPage() {
       setError(message);
       return;
     }
+    if (compressed) URL.revokeObjectURL(compressed.previewUrl);
     setFile(f);
+    setCompressed(null);
+    setCompressing(true);
+    // 元画像を先に出して「何も起きていない」感を消す
     const reader = new FileReader();
     reader.onload = () => setPreview(String(reader.result));
     reader.readAsDataURL(f);
+    try {
+      const out = await compressImage(f);
+      setCompressed(out);
+      setPreview(out.previewUrl);
+    } catch {
+      setCompressed(null);
+    } finally {
+      setCompressing(false);
+    }
   };
 
   const submit = async (e: React.FormEvent) => {
@@ -70,7 +94,8 @@ export default function NewGoshuinPage() {
     }
     setBusy(true);
     try {
-      await registerGoshuin({ shrine_id: shrineId, visited_date: visitedDate, memo, file });
+      // 圧縮済みの実体を送る（未圧縮なら registerGoshuin 側で再度最適化される）
+      await registerGoshuin({ shrine_id: shrineId, visited_date: visitedDate, memo, file: compressed?.file ?? file });
       router.push("/goshuin");
     } catch (err) {
       setError(toUserMessage(err));
@@ -104,21 +129,49 @@ export default function NewGoshuinPage() {
                 type="file"
                 accept="image/*"
                 className="sr-only"
-                onChange={(e) => onPick(e.target.files?.[0] ?? null)}
+                onChange={(e) => void onPick(e.target.files?.[0] ?? null)}
               />
               <button type="button" className="btn btn-outline btn-sm" onClick={() => fileRef.current?.click()}>
                 写真を選ぶ
               </button>
               <p className="text-[0.7rem] leading-snug text-sumi-mute">
-                8MBまでの JPEG / PNG / WebP。撮影した写真は自動で縮小して保存します。
+                8MBまでの JPEG / PNG / WebP。アップロード時に自動で最適化します。
               </p>
+              {compressing && (
+                <p className="flex items-center gap-1.5 text-[0.72rem] text-shu-deep" role="status" aria-live="polite">
+                  <span className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-shu/30 border-t-shu" />
+                  画像を最適化しています…
+                </p>
+              )}
+              {compressed && !compressing && (
+                <p className="text-[0.72rem] text-mori">
+                  {formatBytes(compressed.originalBytes)} → <strong>{formatBytes(compressed.compressedBytes)}</strong>
+                  {" "}（長辺{compressed.width}×{compressed.height}px）
+                </p>
+              )}
               {file && (
-                <button type="button" className="text-[0.72rem] text-sumi-mute underline" onClick={() => onPick(null)}>
+                <button type="button" className="text-[0.72rem] text-sumi-mute underline" onClick={resetPhoto}>
                   選択を解除
                 </button>
               )}
             </div>
           </div>
+        </section>
+
+        <section className="wa-card space-y-2 p-4">
+          <p className="text-[0.78rem] font-semibold">写真の自動圧縮について</p>
+          <p className="text-[0.72rem] leading-relaxed text-sumi-mute">
+            写真は保存容量節約と通信量削減のため、アップロード時に自動圧縮されます。
+          </p>
+          <ul className="space-y-1 text-[0.72rem] leading-relaxed text-sumi-mute">
+            <li>・長辺1600pxへ自動縮小</li>
+            <li>・画質を維持したまま最適化</li>
+            <li>・御朱印や参拝写真は十分な画質で保存</li>
+            <li>・元画像より容量を大幅削減</li>
+          </ul>
+          <Link href="/help/photos" className="inline-block text-[0.74rem] text-shu underline">
+            写真圧縮について（詳しく見る）
+          </Link>
         </section>
 
         <section className="wa-card space-y-3 p-4">
@@ -176,11 +229,11 @@ export default function NewGoshuinPage() {
           <p className="rounded-xl border border-shu/30 bg-[#fdf1ef] px-3 py-2 text-[0.84rem] text-shu-deep">{error}</p>
         )}
 
-        <button type="submit" className="btn btn-primary w-full" disabled={busy}>
-          {busy ? "保存しています…" : "御朱印帳に保存する"}
+        <button type="submit" className="btn btn-primary w-full" disabled={busy || compressing}>
+          {compressing ? "画像を最適化しています…" : busy ? "保存しています…" : "御朱印帳に保存する"}
         </button>
         <p className="pb-2 text-center text-[0.7rem] text-sumi-mute">
-          写真は本人だけが閲覧できます（Firebase Storage / デモは端末内）。
+          写真は本人だけが閲覧できます。長辺1600px・品質85%で保存します。
         </p>
       </form>
     </div>
