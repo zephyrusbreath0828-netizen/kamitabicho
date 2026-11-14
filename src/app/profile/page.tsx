@@ -190,7 +190,7 @@ export default function ProfilePage() {
           <dl className="mt-2 space-y-1 text-[0.76rem] text-sumi-soft">
             <div className="flex justify-between">
               <dt className="text-sumi-mute">バージョン</dt>
-              <dd>2.12.2</dd>
+              <dd>2.13.0</dd>
             </div>
             <div className="flex justify-between">
               <dt className="text-sumi-mute">接続状態</dt>

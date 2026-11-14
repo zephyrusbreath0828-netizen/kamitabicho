@@ -10,7 +10,19 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import PageHeader from "@/components/PageHeader";
 import { SectionTitle } from "@/components/ui";
-import { BENEFITS, BENEFIT_KEYWORDS, BENEFIT_LONG } from "@/data/masters";
+import {
+  BENEFITS,
+  BENEFIT_KEYWORDS,
+  BENEFIT_LONG,
+  BENEFIT_OVERVIEW,
+  BENEFIT_RELATED,
+  BENEFIT_SIGNATURE,
+  PREF_NEIGHBORS,
+  PILGRIM_RANKS,
+  SIGNATURE_PREF,
+  benefitIconOf,
+  pilgrimRankOf,
+} from "@/data/masters";
 import { packBenefitIndex, type BenefitShrineRef } from "@/data/packs";
 import { useApp } from "@/lib/app-context";
 import { distanceMeters, usePosition } from "@/lib/geo";
@@ -43,6 +55,7 @@ export default function BenefitsPage() {
   const [pref, setPref] = useState("all");
   const [sort, setSort] = useState<SortKey>("visited");
   const [limit, setLimit] = useState(40);
+  const [prefBase, setPrefBase] = useState("auto");
 
   const visited = useMemo(() => new Set(visitedShrineIds), [visitedShrineIds]);
 
@@ -103,6 +116,74 @@ export default function BenefitsPage() {
   }, [position, stats]);
 
   const detail = open ? stats.find((s) => s.name === open) ?? null : null;
+
+  /**
+   * 詳細画面のデータ（v2.13.0）
+   * 詳細を開いたときだけ関連神社を走査するので、一覧の初回表示は軽いまま。
+   */
+  const detailData = useMemo(() => {
+    if (!detail) return null;
+    const visitedRefs = detail.refs.filter((r) => visited.has(r.id));
+    const unvisited = detail.refs.filter((r) => !visited.has(r.id));
+
+    const deityCount = new Map<string, number>();
+    detail.refs.forEach((r) => r.deities.forEach((d) => deityCount.set(d, (deityCount.get(d) ?? 0) + 1)));
+    const deities = Array.from(deityCount.entries())
+      .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], "ja"))
+      .slice(0, 4);
+
+    // 分社・御旅所などは避け、同名の本社を優先する
+    const NOT_MAIN = /分社|分霊|御旅所|遥拝|境外|末社|摂社/;
+    const pickMain = (keyword: string): BenefitShrineRef | undefined => {
+      const want = SIGNATURE_PREF[keyword];
+      const candidates = detail.refs.filter(
+        (r) =>
+          r.name.replace(/\s/g, "").includes(keyword) &&
+          !NOT_MAIN.test(r.name) &&
+          (want ? r.prefecture === want : true),
+      );
+      const score = (n: string) => (n === keyword ? 0 : n.startsWith(keyword) ? 1 : 2);
+      return candidates.sort((a, b) => score(a.name) - score(b.name) || a.name.length - b.name.length)[0];
+    };
+    const picked = (BENEFIT_SIGNATURE[detail.name] ?? [])
+      .map(pickMain)
+      .filter((r): r is BenefitShrineRef => Boolean(r))
+      .filter((r, i, arr) => arr.findIndex((x) => x.id === r.id) === i);
+    const featured = (picked.length >= 2 ? picked : unvisited).slice(0, 4);
+
+    const base = prefBase === "auto" ? visitedRefs[0]?.prefecture ?? "" : prefBase;
+    const near = base ? PREF_NEIGHBORS[base] ?? [] : [];
+    const samePref = unvisited.filter((r) => r.prefecture === base);
+    const nearPref = unvisited.filter((r) => near.includes(r.prefecture));
+    const others = unvisited.filter((r) => r.prefecture !== base && !near.includes(r.prefecture));
+    const recommend = [...samePref, ...nearPref, ...others].slice(0, 5);
+
+    const related = Array.from(
+      new Set([
+        ...(BENEFIT_RELATED[detail.name] ?? []),
+        ...BENEFITS.filter((b) => b.category === detail.category).map((b) => b.name),
+      ]),
+    )
+      .filter((n) => n !== detail.name && BENEFITS.some((b) => b.name === n))
+      .slice(0, 4);
+
+    const prefs = Array.from(new Set(detail.refs.map((r) => r.prefecture))).sort((a, b) => a.localeCompare(b, "ja"));
+
+    return {
+      visitedRefs,
+      unvisited,
+      deities,
+      featured,
+      recommend,
+      related,
+      prefs,
+      base,
+      samePrefCount: samePref.length,
+      complete: detail.total > 0 && detail.done === detail.total,
+      overview: BENEFIT_OVERVIEW[detail.name] ?? null,
+      rank: pilgrimRankOf(detail.rate),
+    };
+  }, [detail, visited, prefBase]);
 
   const relatedList = useMemo(() => {
     if (!detail) return { rows: [], prefs: [] };
@@ -241,90 +322,318 @@ export default function BenefitsPage() {
         </Link>
       </div>
 
-      {/* 詳細 */}
-      {detail && (
+      {/* 御利益詳細（v2.13.0） */}
+      {detail && detailData && (
         <div
-          className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 sm:items-center"
+          className="fixed inset-0 z-50 overflow-y-auto bg-washi"
           role="dialog"
           aria-modal="true"
           aria-label={`${detail.name}の詳細`}
-          onClick={() => setOpen(null)}
         >
-          <div className="max-h-[88vh] w-full max-w-md overflow-y-auto rounded-t-2xl bg-washi p-4 sm:rounded-2xl" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-start gap-2">
-              <div className="min-w-0 flex-1">
-                <p className="font-mincho text-[1.12rem] font-semibold">{detail.name}</p>
-                <p className="mt-0.5 text-[0.7rem] text-kin">{detail.category}</p>
-              </div>
-              <button type="button" className="shrink-0 rounded-full border border-washi-line px-2 py-1 text-[0.7rem] text-sumi-mute" onClick={() => setOpen(null)} aria-label="閉じる">
-                閉じる
-              </button>
-            </div>
+          <div className="sticky top-0 z-10 flex items-center gap-2 border-b border-washi-line bg-washi/95 px-3 py-2 backdrop-blur">
+            <button
+              type="button"
+              className="shrink-0 rounded-full border border-washi-line px-2.5 py-1 text-[0.72rem] text-sumi-mute"
+              onClick={() => setOpen(null)}
+              aria-label="図鑑に戻る"
+            >
+              ← 戻る
+            </button>
+            <span className="min-w-0 flex-1 truncate font-mincho text-[0.86rem] font-semibold">
+              {benefitIconOf(detail.name)} {detail.name}
+            </span>
+            {detailData.complete && <span className="shrink-0 text-[0.62rem] font-semibold text-kin">🏆 COMPLETE</span>}
+          </div>
 
-            <p className="mt-2 text-[0.78rem] leading-relaxed text-ink/85">{detail.description}</p>
+          <div className="mx-auto max-w-md px-4 pb-20 pt-4">
+            {/* 1. 御利益名・カテゴリ・アイコン */}
+            <section className="wa-card p-4 text-center">
+              <p className="text-[2.1rem] leading-none" aria-hidden>{benefitIconOf(detail.name)}</p>
+              <h1 className="mt-2 font-mincho text-[1.32rem] font-semibold">{detail.name}</h1>
+              <p className="mt-1.5 inline-flex items-center gap-1 rounded-full border border-kin/50 px-2.5 py-0.5 text-[0.66rem] text-kin">
+                カテゴリ {detail.category}
+              </p>
+              <p className="mt-2 text-[0.68rem] text-sumi-mute">
+                現在の称号 <span className="font-medium text-ink/85">{detailData.rank.label}</span>
+                <span className="ml-1 font-mono">（参拝率 {detail.rate}%）</span>
+              </p>
+            </section>
 
-            <div className="mt-3 grid grid-cols-3 gap-2">
-              {[
-                ["関連神社", `${detail.total}社`],
-                ["参拝済", `${detail.done}社`],
-                ["参拝率", `${detail.rate}%`],
-              ].map(([label, value]) => (
-                <div key={label} className="wa-card p-2 text-center">
-                  <p className="text-[0.62rem] text-sumi-mute">{label}</p>
-                  <p className="font-mono text-[0.9rem] font-semibold">{value}</p>
+            {/* 2. 御利益概要 */}
+            <section className="mt-3 wa-card p-4">
+              <SectionTitle title="御利益概要" />
+              <p className="text-[0.8rem] leading-relaxed text-ink/85">
+                {detailData.overview?.summary ?? detail.description}
+              </p>
+              {detailData.overview && (
+                <>
+                  <p className="mt-3 text-[0.7rem] font-semibold text-sumi-mute">こんな願いごとに</p>
+                  <div className="mt-1.5 flex flex-wrap gap-1.5">
+                    {detailData.overview.wishes.map((w) => (
+                      <span key={w} className="chip text-[0.66rem]">{w}</span>
+                    ))}
+                  </div>
+                  <p className="mt-3 text-[0.7rem] font-semibold text-sumi-mute">関連する信仰</p>
+                  <p className="mt-1 text-[0.76rem] leading-relaxed text-ink/80">{detailData.overview.faith}</p>
+                </>
+              )}
+            </section>
+
+            {/* 3. 代表祭神 */}
+            <section className="mt-3 wa-card p-4">
+              <SectionTitle title="代表祭神" trailing={<span className="text-[0.64rem] text-sumi-mute">関連神社の多い順</span>} />
+              {detailData.deities.length === 0 ? (
+                <p className="text-[0.76rem] text-sumi-mute">祭神データが未登録です。</p>
+              ) : (
+                <div className="space-y-1.5">
+                  {detailData.deities.map(([name, count]) => (
+                    <div key={name} className="flex items-center gap-2 rounded-lg bg-[#faf7ef] px-2.5 py-1.5">
+                      <span className="min-w-0 flex-1 truncate font-mincho text-[0.84rem]">{name}</span>
+                      <span className="shrink-0 font-mono text-[0.64rem] text-sumi-mute">{count}社</span>
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
+              )}
+              <Link href="/zukan" className="mt-2 inline-block text-[0.7rem] text-shu underline">
+                祭神図鑑で神格を調べる
+              </Link>
+            </section>
 
-            <div className="mt-3 flex flex-wrap gap-1.5">
-              {STATUS.map(([key, label]) => (
-                <button key={key} type="button" className={`chip chip-btn ${status === key ? "chip-active" : ""}`} onClick={() => { setStatus(key); setPref("all"); setLimit(40); }} aria-pressed={status === key}>
-                  {label}
-                </button>
-              ))}
-            </div>
-
-            <div className="mt-2 flex gap-2">
-              <select className="field flex-1 text-[0.76rem]" value={pref} onChange={(e) => { setPref(e.target.value); setLimit(40); }} aria-label="都道府県で絞り込み">
-                <option value="all">すべての都道府県</option>
-                {relatedList.prefs.map((p) => (
-                  <option key={p} value={p}>{p}</option>
-                ))}
-              </select>
-              <select className="field flex-1 text-[0.76rem]" value={sort} onChange={(e) => setSort(e.target.value as SortKey)} aria-label="並び替え">
-                {SORTS.map(([key, label]) => (
-                  <option key={key} value={key}>{label}</option>
-                ))}
-              </select>
-            </div>
-
-            <p className="mt-3 text-[0.7rem] text-sumi-mute">
-              関連神社 {relatedList.rows.length}件を表示
-            </p>
-            <div className="mt-1.5 space-y-1.5">
-              {relatedList.rows.slice(0, limit).map((r) => (
-                <Link key={r.id} href={`/shrines/${r.id}`} className="wa-card flex items-center gap-2 p-2.5 transition hover:border-shu/50">
-                  <span className={r.visited ? "text-mori" : "text-sumi-mute"} aria-hidden>{r.visited ? "✅" : "⬜"}</span>
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate text-[0.8rem] font-medium">{r.name}</span>
-                    <span className="block truncate text-[0.66rem] text-sumi-mute">
-                      {r.prefecture}
-                      {r.deities.length > 0 && `・${r.deities.slice(0, 2).join("・")}`}
-                      {r.visited && "・参拝済"}
+            {/* 4. 代表神社 */}
+            <section className="mt-3 wa-card p-4">
+              <SectionTitle title="代表神社" trailing={<span className="text-[0.64rem] text-sumi-mute">タップで詳細</span>} />
+              <div className="space-y-1.5">
+                {detailData.featured.map((r) => (
+                  <Link key={r.id} href={`/shrines/${r.id}`} className="flex items-center gap-2 rounded-lg border border-washi-line px-2.5 py-2 transition hover:border-shu/50">
+                    <span className="shrink-0 text-[0.9rem]" aria-hidden>⛩</span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-[0.82rem] font-medium">{r.name}</span>
+                      <span className="block truncate text-[0.64rem] text-sumi-mute">
+                        {r.prefecture}
+                        {r.deities.length > 0 && `・${r.deities.slice(0, 2).join("・")}`}
+                      </span>
                     </span>
-                  </span>
-                  <span className="shrink-0 text-[0.7rem] text-sumi-mute" aria-hidden>›</span>
-                </Link>
-              ))}
-            </div>
-            {relatedList.rows.length === 0 && (
-              <p className="wa-card p-3 text-center text-[0.76rem] text-sumi-mute">条件に合う神社がありません。</p>
-            )}
-            {relatedList.rows.length > limit && (
-              <button type="button" className="btn btn-outline mt-2 w-full" onClick={() => setLimit((n) => n + 40)}>
-                さらに表示（残り {relatedList.rows.length - limit}社）
-              </button>
-            )}
+                    <span className={`shrink-0 text-[0.62rem] ${visited.has(r.id) ? "text-mori" : "text-sumi-mute"}`}>
+                      {visited.has(r.id) ? "✅ 参拝済" : "未参拝"}
+                    </span>
+                  </Link>
+                ))}
+              </div>
+            </section>
+
+            {/* 5. あなたの収集状況 */}
+            <section className="mt-3 wa-card p-4">
+              <SectionTitle title="あなたの収集状況" />
+              <div className="grid grid-cols-3 gap-2">
+                {[
+                  ["関連神社", `${detail.total}社`, "text-ink"],
+                  ["参拝済", `${detail.done}社`, "text-mori"],
+                  ["未参拝", `${detail.total - detail.done}社`, "text-sumi-mute"],
+                ].map(([label, value, tone]) => (
+                  <div key={label} className="rounded-lg bg-[#faf7ef] p-2 text-center">
+                    <p className="text-[0.6rem] text-sumi-mute">{label}</p>
+                    <p className={`font-mono text-[0.95rem] font-semibold ${tone}`}>{value}</p>
+                  </div>
+                ))}
+              </div>
+            </section>
+
+            {/* 6. あなたの参拝済神社 */}
+            <section className="mt-3 wa-card p-4">
+              <SectionTitle title="あなたの参拝済神社" trailing={<span className="text-[0.64rem] text-sumi-mute">{detailData.visitedRefs.length}社</span>} />
+              {detailData.visitedRefs.length === 0 ? (
+                <p className="text-[0.76rem] leading-relaxed text-sumi-mute">
+                  まだ参拝記録がありません。下のおすすめ神社から最初の一社を訪ねてみましょう。
+                </p>
+              ) : (
+                <div className="space-y-1">
+                  {detailData.visitedRefs.slice(0, 8).map((r) => (
+                    <Link key={r.id} href={`/shrines/${r.id}`} className="flex items-center gap-2 rounded-lg px-1.5 py-1.5 transition hover:bg-[#faf7ef]">
+                      <span className="text-mori" aria-hidden>✅</span>
+                      <span className="min-w-0 flex-1 truncate text-[0.8rem]">{r.name}</span>
+                      <span className="shrink-0 text-[0.64rem] text-sumi-mute">{r.prefecture}</span>
+                    </Link>
+                  ))}
+                  {detailData.visitedRefs.length > 8 && (
+                    <p className="pt-1 text-[0.66rem] text-sumi-mute">ほか {detailData.visitedRefs.length - 8}社</p>
+                  )}
+                </div>
+              )}
+            </section>
+
+            {/* 7. おすすめ神社（同県 → 近県 → 全国） */}
+            <section className="mt-3 wa-card p-4">
+              <SectionTitle
+                title="おすすめ神社"
+                trailing={<span className="text-[0.64rem] text-sumi-mute">未参拝から</span>}
+              />
+              <div className="mb-2 flex items-center gap-2">
+                <span className="shrink-0 text-[0.66rem] text-sumi-mute">基準の地域</span>
+                <select
+                  className="field flex-1 text-[0.74rem]"
+                  value={prefBase}
+                  onChange={(e) => setPrefBase(e.target.value)}
+                  aria-label="おすすめの基準地域"
+                >
+                  <option value="auto">自動（参拝した神社の都道府県）</option>
+                  {detailData.prefs.map((v) => (
+                    <option key={v} value={v}>{v}</option>
+                  ))}
+                </select>
+              </div>
+              <p className="mb-1.5 text-[0.64rem] text-sumi-mute">
+                {detailData.base
+                  ? `${detailData.base} → 近県 → 全国 の順に表示`
+                  : "参拝記録がないため全国から表示します"}
+              </p>
+              {detailData.recommend.length === 0 ? (
+                <p className="text-[0.76rem] text-sumi-mute">未参拝の神社はありません。すべて参拝済みです。</p>
+              ) : (
+                <div className="space-y-1.5">
+                  {detailData.recommend.map((r) => (
+                    <Link key={r.id} href={`/shrines/${r.id}`} className="flex items-start gap-2 rounded-lg border border-washi-line px-2.5 py-2 transition hover:border-shu/50">
+                      <span className="shrink-0 text-[0.8rem]" aria-hidden>⭐</span>
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-[0.82rem] font-medium">{r.name}</span>
+                        <span className="block truncate text-[0.64rem] text-sumi-mute">
+                          {r.prefecture}・{detail.name}の御利益
+                          {r.prefecture === detailData.base && "・同県"}
+                          {r.prefecture !== detailData.base && (PREF_NEIGHBORS[detailData.base] ?? []).includes(r.prefecture) && "・近県"}
+                        </span>
+                      </span>
+                      <span className="shrink-0 self-center text-[0.6rem] text-sumi-mute">未参拝</span>
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </section>
+
+            {/* 8. 関連御利益 */}
+            <section className="mt-3">
+              <SectionTitle title="関連御利益" />
+              <div className="grid grid-cols-2 gap-2">
+                {detailData.related.map((n) => {
+                  const target = stats.find((x) => x.name === n);
+                  return (
+                    <button
+                      key={n}
+                      type="button"
+                      onClick={() => { setOpen(n); setLimit(40); setStatus("all"); setPref("all"); }}
+                      className="wa-card p-2.5 text-left transition hover:border-shu/50"
+                      aria-label={`${n}の詳細を見る`}
+                    >
+                      <p className="text-[1rem] leading-none" aria-hidden>{benefitIconOf(n)}</p>
+                      <p className="mt-1 truncate font-mincho text-[0.82rem] font-semibold">{n}</p>
+                      <p className="text-[0.62rem] text-sumi-mute">
+                        {target ? `関連 ${target.total}社・参拝済 ${target.done}社` : "関連神社なし"}
+                      </p>
+                    </button>
+                  );
+                })}
+              </div>
+            </section>
+
+            {/* 9. 達成バッジ */}
+            <section className="mt-3 wa-card p-4">
+              <SectionTitle title="達成バッジ" trailing={<span className="text-[0.64rem] text-sumi-mute">参拝率 {detail.rate}%</span>} />
+              <div className="space-y-1">
+                {PILGRIM_RANKS.filter((r) => r.min > 0).map((r, i) => {
+                  const reached = detail.rate >= r.min;
+                  return (
+                    <div key={r.label} className={`flex items-center gap-2 rounded-lg px-2 py-1 ${reached ? "bg-[#fdf8ec]" : ""}`}>
+                      <span className={`w-8 shrink-0 text-right font-mono text-[0.62rem] ${reached ? "text-kin" : "text-sumi-mute"}`}>{r.min}%</span>
+                      <span className={`min-w-0 flex-1 truncate text-[0.78rem] ${reached ? "font-medium" : "text-sumi-mute"}`}>
+                        {reached ? "🏅 " : ""}{r.label}
+                      </span>
+                      {detailData.rank.index === i + 1 && <span className="shrink-0 text-[0.58rem] text-shu">現在</span>}
+                    </div>
+                  );
+                })}
+              </div>
+              {detailData.rank.next ? (
+                <p className="mt-2 text-[0.66rem] text-sumi-mute">
+                  次は「{detailData.rank.next.label}」（参拝率 {detailData.rank.next.min}%）
+                </p>
+              ) : (
+                <p className="mt-2 text-[0.66rem] text-sumi-mute">すべての称号を獲得しました。</p>
+              )}
+            </section>
+
+            {/* 10. コンプリート */}
+            <section className={`mt-3 rounded-xl border p-4 text-center ${detailData.complete ? "border-kin/60 bg-[#fdf8ec]" : "border-washi-line bg-white/50"}`}>
+              {detailData.complete ? (
+                <>
+                  <p className="text-[1.6rem] leading-none" aria-hidden>🏆</p>
+                  <p className="mt-1.5 text-[0.7rem] font-semibold tracking-wide text-kin">COMPLETE</p>
+                  <p className="mt-1 font-mincho text-[1.02rem] font-semibold">{detail.name}マスター</p>
+                  <p className="mt-1 text-[0.68rem] text-sumi-mute">
+                    関連 {detail.total}社すべてを参拝しました。
+                  </p>
+                </>
+              ) : (
+                <>
+                  <p className="text-[1.15rem] leading-none opacity-30" aria-hidden>🏆</p>
+                  <p className="mt-1.5 font-mincho text-[0.88rem] font-semibold text-sumi-mute">コンプリートまで</p>
+                  <p className="font-mono text-[1.05rem] font-semibold">残り {detail.total - detail.done}社</p>
+                  <p className="mt-1 text-[0.66rem] text-sumi-mute">
+                    すべて参拝すると「{detail.name}マスター」の称号が付きます。
+                  </p>
+                </>
+              )}
+            </section>
+
+            {/* 11. 関連神社一覧 */}
+            <section className="mt-3">
+              <SectionTitle title="関連神社一覧" trailing={<span className="text-[0.64rem] text-sumi-mute">{relatedList.rows.length}件</span>} />
+              <div className="flex flex-wrap gap-1.5">
+                {STATUS.map(([key, label]) => (
+                  <button key={key} type="button" className={`chip chip-btn ${status === key ? "chip-active" : ""}`} onClick={() => { setStatus(key); setPref("all"); setLimit(40); }} aria-pressed={status === key}>
+                    {label}
+                  </button>
+                ))}
+              </div>
+              <div className="mt-2 flex gap-2">
+                <select className="field flex-1 text-[0.76rem]" value={pref} onChange={(e) => { setPref(e.target.value); setLimit(40); }} aria-label="都道府県で絞り込み">
+                  <option value="all">すべての都道府県</option>
+                  {relatedList.prefs.map((v) => (
+                    <option key={v} value={v}>{v}</option>
+                  ))}
+                </select>
+                <select className="field flex-1 text-[0.76rem]" value={sort} onChange={(e) => setSort(e.target.value as SortKey)} aria-label="並び替え">
+                  {SORTS.map(([key, label]) => (
+                    <option key={key} value={key}>{label}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="mt-1.5 space-y-1.5">
+                {relatedList.rows.slice(0, limit).map((r) => (
+                  <Link key={r.id} href={`/shrines/${r.id}`} className="wa-card flex items-center gap-2 p-2.5 transition hover:border-shu/50">
+                    <span className={r.visited ? "text-mori" : "text-sumi-mute"} aria-hidden>{r.visited ? "✅" : "⬜"}</span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-[0.8rem] font-medium">{r.name}</span>
+                      <span className="block truncate text-[0.66rem] text-sumi-mute">
+                        {r.prefecture}
+                        {r.deities.length > 0 && `・${r.deities.slice(0, 2).join("・")}`}
+                        {r.visited && "・参拝済"}
+                      </span>
+                    </span>
+                    <span className="shrink-0 text-[0.7rem] text-sumi-mute" aria-hidden>›</span>
+                  </Link>
+                ))}
+              </div>
+              {relatedList.rows.length === 0 && (
+                <p className="wa-card p-3 text-center text-[0.76rem] text-sumi-mute">条件に合う神社がありません。</p>
+              )}
+              {relatedList.rows.length > limit && (
+                <button type="button" className="btn btn-outline mt-2 w-full" onClick={() => setLimit((n) => n + 40)}>
+                  さらに表示（残り {relatedList.rows.length - limit}社）
+                </button>
+              )}
+            </section>
+
+            <button type="button" className="btn btn-outline mt-4 w-full" onClick={() => setOpen(null)}>
+              図鑑に戻る
+            </button>
           </div>
         </div>
       )}
