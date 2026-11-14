@@ -12,6 +12,7 @@ import CheckInPanel from "@/components/CheckInPanel";
 import FavoriteButton from "@/components/FavoriteButton";
 import ShrineMap from "@/components/ShrineMap";
 import { BENEFIT_BY_ID, DEITY_BY_ID } from "@/data/masters";
+import { packShrineById } from "@/data/packs";
 import { useApp } from "@/lib/app-context";
 import { formatDateTime } from "@/lib/format";
 import { formatDistance } from "@/lib/geo";
@@ -22,7 +23,10 @@ export default function ShrineDetailPage() {
   const { shrines, shrineById, visits, goshuin, visitedShrineIds } = useApp();
   const { position } = usePosition();
   const shrine = useMemo(
-    () => (params?.id ? shrineById(params.id) ?? shrines.find((s) => s.id === params.id) : undefined),
+    () =>
+      (params?.id
+        ? shrineById(params.id) ?? shrines.find((s) => s.id === params.id) ?? packShrineById(params.id) ?? undefined
+        : undefined),
     [params, shrineById, shrines],
   );
 

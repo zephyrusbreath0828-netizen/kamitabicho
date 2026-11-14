@@ -244,3 +244,16 @@ export function regionShrineCount(regionId: string, fallback = 0): number {
 export function withPackCounts<T extends { id: string; shrine_count?: number }>(regions: T[]): T[] {
   return regions.map((r) => ({ ...r, shrine_count: regionShrineCount(r.id, r.shrine_count ?? 0) }));
 }
+
+/** 全地方パックを通した神社引き（デモでもパック神社の詳細を開けるようにする / v2.11.2） */
+let packIndex: Map<string, ShrineV2> | null = null;
+
+export function packShrineById(id: string): ShrineV2 | null {
+  if (!packIndex) {
+    packIndex = new Map();
+    for (const region of PACK_REGIONS) {
+      for (const s of applySubMasters(packShrines(region))) packIndex.set(s.id, s);
+    }
+  }
+  return packIndex.get(id) ?? null;
+}

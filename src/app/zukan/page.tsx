@@ -5,6 +5,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import PageHeader from "@/components/PageHeader";
 import { ProgressRing, SectionTitle } from "@/components/ui";
+import { deityGroupId } from "@/data/masters";
 import { useApp } from "@/lib/app-context";
 import { formatDate } from "@/lib/format";
 
@@ -37,10 +38,11 @@ export default function ZukanPage() {
     const m = new Map<string, { total: number; visited: number }>();
     for (const s of shrines) {
       for (const id of s.deities ?? []) {
-        const e = m.get(id) ?? { total: 0, visited: 0 };
+        const key = deityGroupId(id);
+        const e = m.get(key) ?? { total: 0, visited: 0 };
         e.total += 1;
         if (visited.has(s.id)) e.visited += 1;
-        m.set(id, e);
+        m.set(key, e);
       }
     }
     return m;
@@ -148,7 +150,7 @@ export default function ZukanPage() {
                       {category && <p className="text-[0.66rem] text-kin">{category}</p>}
                       {tab === "deities" && (
                         <p className="text-[0.64rem] text-sumi-mute">
-                          関連 {deityStats.get(item.id)?.total ?? 0}社・参拝済 {deityStats.get(item.id)?.visited ?? 0}社
+                          関連 {deityStats.get(deityGroupId(item.id))?.total ?? 0}社・参拝済 {deityStats.get(deityGroupId(item.id))?.visited ?? 0}社
                         </p>
                       )}
                     </div>
