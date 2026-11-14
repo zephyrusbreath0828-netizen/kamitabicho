@@ -1,4 +1,4 @@
-/* 神旅帳 v2.11.2 Service Worker
+/* 神旅帳 v2.11.3 Service Worker
  *
  * 方針:
  *  - アプリシェル（アイコン・manifest・オフラインページ）のみプリキャッシュ
