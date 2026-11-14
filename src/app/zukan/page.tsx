@@ -215,6 +215,15 @@ export default function ZukanPage() {
           )}
         </section>
 
+        <Link href="/benefits" className="wa-card flex items-center gap-3 px-4 py-3">
+          <span className="text-shu" aria-hidden>✦</span>
+          <span className="flex-1">
+            <span className="block text-[0.86rem] font-semibold">御利益図鑑で願い事からさがす</span>
+            <span className="block text-[0.7rem] text-sumi-mute">縁結び・金運・厄除け など19種から神社を探せます</span>
+          </span>
+          <span className="text-sumi-mute" aria-hidden>›</span>
+        </Link>
+
         <Link href="/shrines" className="btn btn-primary w-full">
           神社をさがして参拝する
         </Link>

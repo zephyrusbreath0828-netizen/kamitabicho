@@ -292,3 +292,47 @@ export function packDeityIndex(): Map<string, DeityShrineRef[]> {
   deityIndexCache = map;
   return map;
 }
+
+/** 御利益名 → 関連神社（v2.12.0 御利益図鑑） */
+export type BenefitShrineRef = {
+  id: string;
+  name: string;
+  prefecture: string;
+  latitude: number;
+  longitude: number;
+  deities: string[];
+  otherBenefits: string[];
+};
+
+let benefitIndexCache: Map<string, BenefitShrineRef[]> | null = null;
+
+export function packBenefitIndex(): Map<string, BenefitShrineRef[]> {
+  if (benefitIndexCache) return benefitIndexCache;
+  const map = new Map<string, BenefitShrineRef[]>();
+  for (const regionId of PACK_REGIONS) {
+    const sm = SUB_MASTERS[regionId];
+    if (!sm) continue;
+    for (const s of RAW[regionId]) {
+      const bs = sm.benefits.get(s.id);
+      if (!bs?.length) continue;
+      const ds = sm.deities.get(s.id) ?? [];
+      for (const b of bs) {
+        const others = bs.filter((x) => x !== b);
+        const ref: BenefitShrineRef = {
+          id: s.id,
+          name: s.name,
+          prefecture: s.prefecture,
+          latitude: s.latitude,
+          longitude: s.longitude,
+          deities: ds,
+          otherBenefits: others,
+        };
+        const list = map.get(b);
+        if (list) list.push(ref);
+        else map.set(b, [ref]);
+      }
+    }
+  }
+  benefitIndexCache = map;
+  return map;
+}

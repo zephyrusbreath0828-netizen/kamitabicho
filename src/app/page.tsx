@@ -15,7 +15,7 @@ import { devToolsEnabled } from "@/lib/firebase";
 import { CHECKIN_RADIUS_M, distanceMeters, formatDistance, formatLatLng } from "@/lib/geo";
 import { nearestPrefecture, regionLabel } from "@/data/masters";
 import { formatRelative } from "@/lib/format";
-import { usePosition, useTestPosition } from "@/lib/use-position";
+import { usePosition, useTestPosition } from "@/lib/geo";
 
 function nearestPrefOf(
   pos: { latitude: number; longitude: number },
@@ -407,6 +407,19 @@ export default function HomePage() {
               位置情報を取得すると、現在地から近い順に神社を表示します。
             </p>
           )}
+        </section>
+
+        <section className="grid grid-cols-2 gap-2.5">
+          <Link href="/benefits" className="wa-card p-3 transition hover:border-shu/50">
+            <p className="text-[0.64rem] text-kin">BENEFITS</p>
+            <p className="font-mincho mt-0.5 text-[0.92rem] font-semibold">御利益図鑑</p>
+            <p className="mt-1 text-[0.68rem] leading-snug text-sumi-mute">願い事から神社をさがす</p>
+          </Link>
+          <Link href="/zukan" className="wa-card p-3 transition hover:border-shu/50">
+            <p className="text-[0.64rem] text-kin">COLLECTION</p>
+            <p className="font-mincho mt-0.5 text-[0.92rem] font-semibold">祭神図鑑</p>
+            <p className="mt-1 text-[0.68rem] leading-snug text-sumi-mute">参拝で集まる祭神と御利益</p>
+          </Link>
         </section>
 
         {visits.length > 0 && goshuin.length === 0 && (

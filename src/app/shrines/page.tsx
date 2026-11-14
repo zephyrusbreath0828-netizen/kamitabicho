@@ -13,7 +13,7 @@ import { useApp } from "@/lib/app-context";
 import { distanceMeters } from "@/lib/geo";
 import { REGION_LIST, regionLabel } from "@/data/masters";
 import type { RegionId, ShrineSearchResult, ShrineV2 } from "@/lib/types";
-import { usePosition } from "@/lib/use-position";
+import { usePosition } from "@/lib/geo";
 
 type Filter = "all" | "visited" | "favorite";
 const PAGE_SIZE = 20;

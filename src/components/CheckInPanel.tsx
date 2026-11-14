@@ -10,7 +10,7 @@ import { devToolsEnabled } from "@/lib/firebase";
 import { toUserMessage } from "@/lib/errors";
 import { CHECKIN_RADIUS_M, distanceMeters, formatDistance, isWithinCheckinRadius } from "@/lib/geo";
 import type { Shrine } from "@/lib/types";
-import { usePosition, useTestPosition } from "@/lib/use-position";
+import { usePosition, useTestPosition } from "@/lib/geo";
 
 export default function CheckInPanel({ shrine }: { shrine: Shrine }) {
   const { checkIn, visits, user, online, pendingVisits } = useApp();

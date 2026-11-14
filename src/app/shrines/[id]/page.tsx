@@ -16,7 +16,7 @@ import { packShrineById } from "@/data/packs";
 import { useApp } from "@/lib/app-context";
 import { formatDateTime } from "@/lib/format";
 import { formatDistance } from "@/lib/geo";
-import { usePosition } from "@/lib/use-position";
+import { usePosition } from "@/lib/geo";
 
 export default function ShrineDetailPage() {
   const params = useParams<{ id: string }>();

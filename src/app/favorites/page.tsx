@@ -6,7 +6,7 @@ import ShrineCard from "@/components/ShrineCard";
 import { EmptyState } from "@/components/ui";
 import { useApp } from "@/lib/app-context";
 import { distanceMeters } from "@/lib/geo";
-import { usePosition } from "@/lib/use-position";
+import { usePosition } from "@/lib/geo";
 
 export default function FavoritesPage() {
   const { favorites, shrineById, visitedShrineIds, visitCountOf } = useApp();
