@@ -15,6 +15,8 @@ export default function ZukanPage() {
   const [tab, setTab] = useState<"benefits" | "deities">("benefits");
   const [query, setQuery] = useState("");
   const [deityId, setDeityId] = useState<string | null>(null);
+  const [openCategory, setOpenCategory] = useState<string | null>(null);
+  const [categorySort, setCategorySort] = useState<"rate" | "name">("rate");
   const [showAllRelated, setShowAllRelated] = useState(false);
 
   const active = tab === "benefits" ? benefitsCollection : deitiesCollection;
@@ -84,18 +86,41 @@ export default function ZukanPage() {
   }, [deityId, shrines, visitedShrineIds, deitiesCollection.items, deities]);
 
   /** カテゴリ別の取得状況（v2.8） */
-  const categoryStats = useMemo(() => {
-    if (tab !== "benefits") return [];
-    const m = new Map<string, { total: number; got: number }>();
+  /**
+   * カテゴリ別の収集状況（v2.12.1）
+   * 種別ごとに「取得 x / y種類・達成率・内訳（✅/⬜）」を持つ汎用構造。
+   * 祭神図鑑など別の分類軸にもそのまま流用できる。
+   */
+  type CategoryGroup = {
+    category: string;
+    total: number;
+    got: number;
+    rate: number;
+    complete: boolean;
+    members: Array<{ id: string; name: string; obtained: boolean }>;
+  };
+
+  const categoryStats = useMemo<CategoryGroup[]>(() => {
+    const m = new Map<string, CategoryGroup>();
     for (const item of items) {
-      const cat = "category" in item ? String(item.category) : "その他";
-      const e = m.get(cat) ?? { total: 0, got: 0 };
+      const cat = "category" in item ? String(item.category ?? "その他") : "その他";
+      const e = m.get(cat) ?? { category: cat, total: 0, got: 0, rate: 0, complete: false, members: [] };
+      const obtained = Boolean(item.obtainedAt);
       e.total += 1;
-      if (item.obtainedAt) e.got += 1;
+      if (obtained) e.got += 1;
+      e.members.push({ id: item.id, name: item.name, obtained });
       m.set(cat, e);
     }
-    return Array.from(m.entries()).map(([category, v]) => ({ category, ...v }));
-  }, [items, tab]);
+    const list = Array.from(m.values()).map((e) => ({
+      ...e,
+      rate: e.total ? Math.round((e.got / e.total) * 100) : 0,
+      complete: e.got === e.total && e.total > 0,
+      members: e.members.sort((a, b) => Number(b.obtained) - Number(a.obtained) || a.name.localeCompare(b.name, "ja")),
+    }));
+    return list.sort((a, b) =>
+      categorySort === "name" ? a.category.localeCompare(b.category, "ja") : b.rate - a.rate || a.category.localeCompare(b.category, "ja"),
+    );
+  }, [items, categorySort]);
 
   return (
     <div>
@@ -134,19 +159,73 @@ export default function ZukanPage() {
           </div>
         </section>
 
-        {tab === "benefits" && categoryStats.length > 0 && (
+        {categoryStats.length > 0 && (
           <section className="wa-card p-3">
-            <p className="font-mincho mb-2 text-[0.8rem] font-semibold">カテゴリ別の収集状況</p>
-            <div className="grid grid-cols-2 gap-x-4 gap-y-1.5">
-              {categoryStats.map((c) => (
-                <div key={c.category} className="flex items-baseline justify-between gap-2">
-                  <span className="text-[0.7rem] text-sumi-mute">{c.category}</span>
-                  <span className="font-mono text-[0.68rem] text-ink/70">
-                    {c.got}/{c.total}
-                  </span>
-                </div>
-              ))}
+            <div className="mb-2 flex items-baseline justify-between gap-2">
+              <p className="font-mincho text-[0.8rem] font-semibold">
+                {tab === "benefits" ? "カテゴリ別の収集状況" : "分類別の収集状況"}
+              </p>
+              <button
+                type="button"
+                className="chip chip-btn text-[0.64rem]"
+                onClick={() => setCategorySort((v) => (v === "rate" ? "name" : "rate"))}
+                aria-label="並び順を切り替える"
+              >
+                {categorySort === "rate" ? "取得率順" : "カテゴリ名順"}
+              </button>
             </div>
+            <div className="space-y-1">
+              {categoryStats.map((c) => {
+                const expanded = openCategory === c.category;
+                return (
+                  <div key={c.category} className={`rounded-lg border ${c.complete ? "border-kin/60 bg-[#fdf8ec]" : "border-transparent"}`}>
+                    <button
+                      type="button"
+                      className="flex w-full items-center gap-2 px-1.5 py-1.5 text-left"
+                      onClick={() => setOpenCategory(expanded ? null : c.category)}
+                      aria-expanded={expanded}
+                      aria-label={`${c.category}の内訳を${expanded ? "閉じる" : "見る"}`}
+                    >
+                      <span className={`text-[0.6rem] text-sumi-mute transition-transform ${expanded ? "rotate-90" : ""}`} aria-hidden>
+                        ▶
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <span className="flex items-baseline gap-1.5">
+                          <span className="truncate text-[0.76rem] font-medium">{c.category}</span>
+                          {c.complete && <span className="shrink-0 text-[0.56rem] font-semibold text-kin">🏆 COMPLETE</span>}
+                        </span>
+                        <span className="mt-0.5 flex items-center gap-1.5">
+                          <span className="h-[3px] flex-1 overflow-hidden rounded-full bg-washi-line">
+                            <span className={`block h-full rounded-full ${c.complete ? "bg-kin" : "bg-shu/70"}`} style={{ width: `${c.rate}%` }} />
+                          </span>
+                          <span className="shrink-0 font-mono text-[0.6rem] text-sumi-mute">{c.rate}%</span>
+                        </span>
+                      </span>
+                      <span className="shrink-0 text-right">
+                        <span className="block text-[0.66rem] text-sumi-mute">
+                          取得 <span className="font-mono text-ink/80">{c.got}</span> / {c.total}種類
+                        </span>
+                      </span>
+                    </button>
+                    {expanded && (
+                      <div className="animate-[fade-in_.16s_ease-out] border-t border-washi-line px-2 py-1.5">
+                        {c.members.map((m) => (
+                          <div key={m.id} className="flex items-center gap-2 py-0.5">
+                            <span className={m.obtained ? "text-mori" : "text-sumi-mute"} aria-hidden>
+                              {m.obtained ? "✅" : "⬜"}
+                            </span>
+                            <span className={`text-[0.74rem] ${m.obtained ? "" : "text-sumi-mute"}`}>{m.name}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+            <p className="mt-2 text-[0.62rem] text-sumi-mute">
+              カテゴリをタップすると取得済み・未取得の内訳を表示します。
+            </p>
           </section>
         )}
 
