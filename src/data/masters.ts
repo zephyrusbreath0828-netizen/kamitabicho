@@ -1927,6 +1927,38 @@ export const BENEFIT_KEYWORDS: Record<string, string[]> = {
 /** 御利益名 → 検索語（逆引き・包含判定用） */
 export const BENEFIT_KEYWORD_LIST: Array<[string, string[]]> = Object.entries(BENEFIT_KEYWORDS);
 
+
+/**
+ * 御利益アイコン（v2.12.2）
+ * 未定義の御利益は ⛩️ を自動適用するため、御利益を追加したらここに1行足すだけでよい。
+ */
+export const BENEFIT_ICONS: Record<string, string> = {
+  縁結び: "💕",
+  子宝: "👶",
+  安産: "👶",
+  金運: "💰",
+  商売繁盛: "🏪",
+  学業成就: "📚",
+  厄除け: "🛡️",
+  家内安全: "🏠",
+  交通安全: "🚗",
+  海上安全: "⚓",
+  病気平癒: "❤️",
+  健康: "🌿",
+  芸能上達: "🎭",
+  国家安泰: "🏯",
+  五穀豊穣: "🌾",
+  開運: "✨",
+  スポーツ成就: "🏅",
+  酒造安全: "🍶",
+  武運長久: "⚔️",
+};
+
+/** 御利益名 → アイコン（未定義は ⛩️） */
+export function benefitIconOf(name: string): string {
+  return BENEFIT_ICONS[name] ?? "⛩️";
+}
+
 export const DEITY_BY_ID = new Map(DEITIES.map((d) => [d.id, d]));
 export const BENEFIT_BY_ID = new Map(BENEFITS.map((b) => [b.id, b]));
 export const REGION_BY_ID = new Map(REGIONS.map((r) => [r.id, r]));

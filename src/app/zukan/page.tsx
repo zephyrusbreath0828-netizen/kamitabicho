@@ -5,8 +5,8 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import PageHeader from "@/components/PageHeader";
 import { ProgressRing, SectionTitle } from "@/components/ui";
-import { deityGroupId, deityProfileOf, DEITY_BY_ID } from "@/data/masters";
-import { packDeityIndex } from "@/data/packs";
+import { benefitIconOf, deityGroupId, deityProfileOf, DEITY_BY_ID } from "@/data/masters";
+import { packBenefitIndex, packDeityIndex } from "@/data/packs";
 import { useApp } from "@/lib/app-context";
 import { formatDate } from "@/lib/format";
 
@@ -97,8 +97,15 @@ export default function ZukanPage() {
     got: number;
     rate: number;
     complete: boolean;
-    members: Array<{ id: string; name: string; obtained: boolean }>;
+    members: Array<{ id: string; name: string; obtained: boolean; icon: string; shrines: number }>;
   };
+
+  const benefitShrineCounts = useMemo(() => {
+    const idx = packBenefitIndex();
+    const m = new Map<string, number>();
+    idx.forEach((refs, name) => m.set(name, refs.length));
+    return m;
+  }, []);
 
   const categoryStats = useMemo<CategoryGroup[]>(() => {
     const m = new Map<string, CategoryGroup>();
@@ -108,7 +115,13 @@ export default function ZukanPage() {
       const obtained = Boolean(item.obtainedAt);
       e.total += 1;
       if (obtained) e.got += 1;
-      e.members.push({ id: item.id, name: item.name, obtained });
+      e.members.push({
+        id: item.id,
+        name: item.name,
+        obtained,
+        icon: benefitIconOf(item.name),
+        shrines: benefitShrineCounts.get(item.name) ?? 0,
+      });
       m.set(cat, e);
     }
     const list = Array.from(m.values()).map((e) => ({
@@ -117,10 +130,11 @@ export default function ZukanPage() {
       complete: e.got === e.total && e.total > 0,
       members: e.members.sort((a, b) => Number(b.obtained) - Number(a.obtained) || a.name.localeCompare(b.name, "ja")),
     }));
+    // 並び順は内部の取得率で決める（画面上に % は表示しない）
     return list.sort((a, b) =>
       categorySort === "name" ? a.category.localeCompare(b.category, "ja") : b.rate - a.rate || a.category.localeCompare(b.category, "ja"),
     );
-  }, [items, categorySort]);
+  }, [items, categorySort, benefitShrineCounts]);
 
   return (
     <div>
@@ -171,10 +185,10 @@ export default function ZukanPage() {
                 onClick={() => setCategorySort((v) => (v === "rate" ? "name" : "rate"))}
                 aria-label="並び順を切り替える"
               >
-                {categorySort === "rate" ? "取得率順" : "カテゴリ名順"}
+                {categorySort === "rate" ? "取得数順" : "カテゴリ名順"}
               </button>
             </div>
-            <div className="space-y-1">
+            <div className="space-y-1.5">
               {categoryStats.map((c) => {
                 const expanded = openCategory === c.category;
                 return (
@@ -186,35 +200,50 @@ export default function ZukanPage() {
                       aria-expanded={expanded}
                       aria-label={`${c.category}の内訳を${expanded ? "閉じる" : "見る"}`}
                     >
-                      <span className={`text-[0.6rem] text-sumi-mute transition-transform ${expanded ? "rotate-90" : ""}`} aria-hidden>
+                      <span className={`shrink-0 text-[0.58rem] text-sumi-mute transition-transform ${expanded ? "rotate-90" : ""}`} aria-hidden>
                         ▶
                       </span>
                       <span className="min-w-0 flex-1">
                         <span className="flex items-baseline gap-1.5">
-                          <span className="truncate text-[0.76rem] font-medium">{c.category}</span>
+                          <span className="truncate text-[0.78rem] font-medium">{c.category}</span>
                           {c.complete && <span className="shrink-0 text-[0.56rem] font-semibold text-kin">🏆 COMPLETE</span>}
                         </span>
-                        <span className="mt-0.5 flex items-center gap-1.5">
-                          <span className="h-[3px] flex-1 overflow-hidden rounded-full bg-washi-line">
-                            <span className={`block h-full rounded-full ${c.complete ? "bg-kin" : "bg-shu/70"}`} style={{ width: `${c.rate}%` }} />
-                          </span>
-                          <span className="shrink-0 font-mono text-[0.6rem] text-sumi-mute">{c.rate}%</span>
+                        <span className="mt-1 flex flex-wrap items-center gap-1" aria-hidden>
+                          {c.members.map((m) => (
+                            <span
+                              key={m.id}
+                              className={`inline-flex h-6 w-6 items-center justify-center rounded-full border text-[0.72rem] leading-none ${
+                                m.obtained ? "border-shu/40 bg-[#fdf3f0]" : "border-washi-line bg-transparent opacity-35 grayscale"
+                              }`}
+                              title={`${m.name}${m.obtained ? "（取得済）" : "（未取得）"}`}
+                            >
+                              {m.obtained ? m.icon : "○"}
+                            </span>
+                          ))}
                         </span>
                       </span>
-                      <span className="shrink-0 text-right">
-                        <span className="block text-[0.66rem] text-sumi-mute">
-                          取得 <span className="font-mono text-ink/80">{c.got}</span> / {c.total}種類
-                        </span>
+                      <span className="shrink-0 self-start text-right text-[0.66rem] text-sumi-mute">
+                        取得 <span className="font-mono text-ink/80">{c.got}</span> / {c.total}種類
                       </span>
                     </button>
                     {expanded && (
                       <div className="animate-[fade-in_.16s_ease-out] border-t border-washi-line px-2 py-1.5">
                         {c.members.map((m) => (
-                          <div key={m.id} className="flex items-center gap-2 py-0.5">
-                            <span className={m.obtained ? "text-mori" : "text-sumi-mute"} aria-hidden>
-                              {m.obtained ? "✅" : "⬜"}
+                          <div key={m.id} className="flex items-center gap-2 py-1">
+                            <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full border text-[0.82rem] ${
+                              m.obtained ? "border-shu/40 bg-[#fdf3f0]" : "border-washi-line opacity-45 grayscale"
+                            }`} aria-hidden>
+                              {m.icon}
                             </span>
-                            <span className={`text-[0.74rem] ${m.obtained ? "" : "text-sumi-mute"}`}>{m.name}</span>
+                            <span className="min-w-0 flex-1">
+                              <span className={`block truncate text-[0.78rem] ${m.obtained ? "font-medium" : "text-sumi-mute"}`}>
+                                {m.name}
+                              </span>
+                              <span className="block text-[0.64rem] text-sumi-mute">
+                                {m.obtained ? "✅ 取得済" : "⬜ 未取得"}
+                                {m.shrines > 0 && `・関連神社 ${m.shrines.toLocaleString()}社`}
+                              </span>
+                            </span>
                           </div>
                         ))}
                       </div>
@@ -224,7 +253,7 @@ export default function ZukanPage() {
               })}
             </div>
             <p className="mt-2 text-[0.62rem] text-sumi-mute">
-              カテゴリをタップすると取得済み・未取得の内訳を表示します。
+              カテゴリをタップすると取得状況の内訳を表示します。
             </p>
           </section>
         )}
