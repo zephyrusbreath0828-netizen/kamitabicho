@@ -5,7 +5,8 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import PageHeader from "@/components/PageHeader";
 import { ProgressRing, SectionTitle } from "@/components/ui";
-import { deityGroupId } from "@/data/masters";
+import { deityGroupId, deityProfileOf, DEITY_BY_ID } from "@/data/masters";
+import { packDeityIndex } from "@/data/packs";
 import { useApp } from "@/lib/app-context";
 import { formatDate } from "@/lib/format";
 
@@ -13,6 +14,8 @@ export default function ZukanPage() {
   const { benefitsCollection, deitiesCollection, benefits, deities, shrines, visitedShrineIds } = useApp();
   const [tab, setTab] = useState<"benefits" | "deities">("benefits");
   const [query, setQuery] = useState("");
+  const [deityId, setDeityId] = useState<string | null>(null);
+  const [showAllRelated, setShowAllRelated] = useState(false);
 
   const active = tab === "benefits" ? benefitsCollection : deitiesCollection;
   const master = tab === "benefits" ? benefits : deities;
@@ -47,6 +50,38 @@ export default function ZukanPage() {
     }
     return m;
   }, [shrines, visitedShrineIds]);
+
+  /** 祭神詳細（v2.11.6）: 神格・神徳・関連神社一覧 */
+  const deityDetail = useMemo(() => {
+    if (!deityId) return null;
+    const key = deityGroupId(deityId);
+    const visited = new Set(visitedShrineIds);
+    const base = DEITY_BY_ID.get(deityId) ?? deities.find((d) => d.id === deityId);
+    const name = base?.name ?? deityId.replace(/^d_/, "");
+    const fallback = (base?.description ?? "").replace(/（.*?）/g, "").trim();
+    const profile = deityProfileOf(name, fallback);
+    // 同梱パック全体から関連神社を抽出し、アプリ側の神社情報で上書きする
+    const map = new Map<string, { id: string; name: string; prefecture: string; benefits: string[] }>();
+    for (const r of packDeityIndex().get(key) ?? []) map.set(r.id, { ...r });
+    for (const s of shrines) {
+      if (!(s.deities ?? []).some((d) => deityGroupId(d) === key)) continue;
+      if (map.has(s.id)) continue;
+      map.set(s.id, { id: s.id, name: s.name, prefecture: s.prefecture, benefits: [] });
+    }
+    const related = Array.from(map.values())
+      .map((r) => ({ ...r, visited: visited.has(r.id) }))
+      .sort((a, b) => Number(b.visited) - Number(a.visited) || a.prefecture.localeCompare(b.prefecture, "ja") || a.name.localeCompare(b.name, "ja"));
+    const visitedCount = related.filter((r) => r.visited).length;
+    return {
+      key,
+      name,
+      profile,
+      related,
+      visitedCount,
+      rate: related.length ? Math.round((visitedCount / related.length) * 1000) / 10 : 0,
+      obtained: Boolean(deitiesCollection.items.find((i) => i.id === deityId)?.obtainedAt),
+    };
+  }, [deityId, shrines, visitedShrineIds, deitiesCollection.items, deities]);
 
   /** カテゴリ別の取得状況（v2.8） */
   const categoryStats = useMemo(() => {
@@ -135,7 +170,12 @@ export default function ZukanPage() {
               return (
                 <div
                   key={item.id}
-                  className={`wa-card p-3 ${got ? "" : "border-dashed bg-transparent opacity-80"}`}
+                  onClick={tab === "deities" ? () => { setShowAllRelated(false); setDeityId(item.id); } : undefined}
+                  onKeyDown={tab === "deities" ? (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setShowAllRelated(false); setDeityId(item.id); } } : undefined}
+                  role={tab === "deities" ? "button" : undefined}
+                  tabIndex={tab === "deities" ? 0 : undefined}
+                  aria-label={tab === "deities" ? `${item.name}の詳細を見る` : undefined}
+                  className={`wa-card p-3 ${got ? "" : "border-dashed bg-transparent opacity-80"} ${tab === "deities" ? "cursor-pointer transition hover:border-shu/50" : ""}`}
                 >
                   <div className="flex items-start gap-2">
                     <div
@@ -181,6 +221,95 @@ export default function ZukanPage() {
         <p className="pb-2 text-center text-[0.68rem] leading-relaxed text-sumi-mute">
           御利益は神社マスタの情報に基づきます。未設定の神社は運営が順次追加します。
         </p>
+
+      {deityDetail && (
+        <div
+          className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 sm:items-center"
+          role="dialog"
+          aria-modal="true"
+          aria-label={`${deityDetail.name}の詳細`}
+          onClick={() => setDeityId(null)}
+        >
+          <div
+            className="max-h-[88vh] w-full max-w-md overflow-y-auto rounded-t-2xl bg-washi p-4 sm:rounded-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-start gap-3">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-shu/60 bg-[#fdf3f0] font-mincho text-[1.1rem] text-shu">
+                {deityDetail.obtained ? deityDetail.name.slice(0, 1) : "？"}
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="font-mincho text-[1.12rem] font-semibold leading-tight">{deityDetail.name}</p>
+                <p className="mt-0.5 text-[0.72rem] text-kin">{deityDetail.profile.rank}</p>
+                <p className="mt-0.5 text-[0.7rem] text-sumi-mute">神徳：{deityDetail.profile.virtue}</p>
+              </div>
+              <button
+                type="button"
+                className="shrink-0 rounded-full border border-washi-line px-2 py-1 text-[0.7rem] text-sumi-mute"
+                onClick={() => setDeityId(null)}
+                aria-label="閉じる"
+              >
+                閉じる
+              </button>
+            </div>
+
+            <p className="mt-3 text-[0.78rem] leading-relaxed text-ink/85">{deityDetail.profile.desc}</p>
+
+            <div className="mt-3 grid grid-cols-3 gap-2">
+              {[
+                ["関連神社", `${deityDetail.related.length}社`],
+                ["参拝済", `${deityDetail.visitedCount}社`],
+                ["参拝率", `${deityDetail.rate}%`],
+              ].map(([label, value]) => (
+                <div key={label} className="wa-card p-2 text-center">
+                  <p className="text-[0.62rem] text-sumi-mute">{label}</p>
+                  <p className="font-mono text-[0.9rem] font-semibold text-ink">{value}</p>
+                </div>
+              ))}
+            </div>
+
+            <div className="mt-4">
+              <p className="font-mincho mb-2 text-[0.86rem] font-semibold">
+                関連神社一覧
+                <span className="ml-2 text-[0.66rem] font-normal text-sumi-mute">
+                  {deityDetail.obtained ? "参拝済みから表示" : "参拝すると図鑑に登録されます"}
+                </span>
+              </p>
+              <div className="space-y-1.5">
+                {deityDetail.related.slice(0, showAllRelated ? undefined : 30).map((r) => (
+                  <Link
+                    key={r.id}
+                    href={`/shrines/${r.id}`}
+                    className="wa-card flex items-center gap-2 p-2.5 transition hover:border-shu/50"
+                  >
+                    <span className={`text-[0.8rem] ${r.visited ? "text-mori" : "text-sumi-mute"}`} aria-hidden>
+                      {r.visited ? "✅" : "⬜"}
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-[0.8rem] font-medium">{r.name}</span>
+                      <span className="block truncate text-[0.66rem] text-sumi-mute">
+                        {r.prefecture}
+                        {r.benefits.length > 0 && `・${r.benefits.slice(0, 2).join("・")}`}
+                      </span>
+                    </span>
+                    <span className="shrink-0 text-[0.7rem] text-sumi-mute" aria-hidden>›</span>
+                  </Link>
+                ))}
+              </div>
+              {deityDetail.related.length === 0 && (
+                <p className="wa-card p-3 text-center text-[0.76rem] text-sumi-mute">
+                  関連神社の登録がありません。
+                </p>
+              )}
+              {!showAllRelated && deityDetail.related.length > 30 && (
+                <button type="button" className="btn btn-outline mt-2 w-full" onClick={() => setShowAllRelated(true)}>
+                  さらに表示（残り {deityDetail.related.length - 30}社）
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
       </div>
     </div>
   );

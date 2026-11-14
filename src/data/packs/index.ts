@@ -37,7 +37,7 @@ import historyTohoku from "./history-tohoku.json";
 import deitiesKanto from "./deities-kanto.json";
 import benefitsKanto from "./benefits-kanto.json";
 import historyKanto from "./history-kanto.json";
-import { BENEFITS } from "@/data/masters";
+import { BENEFITS, deityGroupId } from "@/data/masters";
 import type { ShrineV2 } from "@/lib/types";
 
 export type PackShrine = {
@@ -256,4 +256,39 @@ export function packShrineById(id: string): ShrineV2 | null {
     }
   }
   return packIndex.get(id) ?? null;
+}
+
+/** 祭神（別名統合キー）→ 関連神社の軽量インデックス（v2.11.6 祭神詳細の関連神社一覧） */
+export type DeityShrineRef = { id: string; name: string; prefecture: string; benefits: string[] };
+
+let deityIndexCache: Map<string, DeityShrineRef[]> | null = null;
+
+export function packDeityIndex(): Map<string, DeityShrineRef[]> {
+  if (deityIndexCache) return deityIndexCache;
+  const map = new Map<string, DeityShrineRef[]>();
+  for (const regionId of PACK_REGIONS) {
+    const sm = SUB_MASTERS[regionId];
+    if (!sm) continue;
+    for (const s of RAW[regionId]) {
+      const ds = sm.deities.get(s.id);
+      if (!ds?.length) continue;
+      const ref: DeityShrineRef = {
+        id: s.id,
+        name: s.name,
+        prefecture: s.prefecture,
+        benefits: sm.benefits.get(s.id) ?? [],
+      };
+      const seen = new Set<string>();
+      for (const d of ds) {
+        const key = deityGroupId(deityIdOfName(d));
+        if (seen.has(key)) continue;
+        seen.add(key);
+        const list = map.get(key);
+        if (list) list.push(ref);
+        else map.set(key, [ref]);
+      }
+    }
+  }
+  deityIndexCache = map;
+  return map;
 }
